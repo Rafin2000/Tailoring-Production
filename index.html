@@ -111,22 +111,30 @@
         </div>
       </div>
 
-      <!-- Quick Action Buttons -->
+      <!-- Google Sheet Connection Indicator & Actions -->
       <div class="flex items-center flex-wrap gap-2 text-xs">
-        <button onclick="exportAllDataToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5" title="সম্পূর্ণ হিসাব এক্সেল ফাইলে ডাউনলোড করুন">
-          <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Excel Export</span>
+        
+        <!-- Live Google Sheet Status Badge -->
+        <button onclick="openApiConfigModal()" id="sheetStatusBadge" class="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-medium transition flex items-center gap-2 shadow-xs" title="Google Sheet API কনফিগারেশন">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="sheetStatusText">Google Sheet Connected</span>
+          <i class="fa-solid fa-gear text-[10px] opacity-70"></i>
         </button>
 
-        <button onclick="backupSystemData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-semibold transition flex items-center gap-1.5" title="ডাটা ব্যাকআপ বা রিস্টোর">
-          <i class="fa-solid fa-database"></i> <span class="hidden sm:inline">ব্যাকআপ / রিস্টোর</span>
+        <button onclick="syncWithGoogleSheet(true)" id="btnSync" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-xl font-semibold shadow-md shadow-sky-600/20 transition flex items-center gap-1.5" title="গুগল শিটের সাথে সিঙ্ক করুন">
+          <i class="fa-solid fa-arrows-rotate" id="syncIcon"></i> <span class="hidden sm:inline">শিট সিঙ্ক</span>
         </button>
 
-        <button onclick="loadDemoDataConfirmation()" class="bg-amber-600/90 hover:bg-amber-600 text-white px-3 py-2 rounded-xl font-semibold transition flex items-center gap-1.5" title="ডেমো ডাটা লোড করুন">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hidden sm:inline">ডেমো ডাটা</span>
+        <button onclick="exportAllDataToExcel()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5" title="সম্পূর্ণ হিসাব এক্সেল ফাইলে ডাউনলোড করুন">
+          <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Excel</span>
         </button>
 
-        <button onclick="refreshAllViews(true)" class="bg-sky-600 hover:bg-sky-500 text-white px-3.5 py-2 rounded-xl font-semibold shadow-md shadow-sky-600/20 transition flex items-center gap-1.5">
-          <i class="fa-solid fa-rotate mr-1" id="refreshIcon"></i> রিফ্রেশ
+        <button onclick="openAppsScriptCodeModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl font-semibold transition flex items-center gap-1.5" title="Google Apps Script ব্যাকএন্ড কোড">
+          <i class="fa-solid fa-code"></i> <span class="hidden sm:inline">GAS Code</span>
+        </button>
+
+        <button onclick="backupSystemData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl font-semibold transition flex items-center gap-1.5" title="ডাটা ব্যাকআপ বা রিস্টোর">
+          <i class="fa-solid fa-database"></i> <span class="hidden sm:inline">ব্যাকআপ</span>
         </button>
       </div>
 
@@ -784,6 +792,69 @@
 
   </main>
 
+  <!-- ================= GOOGLE SHEET CONFIGURATION MODAL ================= -->
+  <div id="apiConfigModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-plug text-emerald-600"></i> Google Sheet API কানেকশন
+        </h3>
+        <button onclick="closeApiConfigModal()" class="text-slate-400 hover:text-slate-700 text-xl w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Google Apps Script Web App URL:</label>
+          <input type="text" id="cfgApiUrl" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-mono text-[11px] text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+          <p class="text-[10px] text-slate-400 mt-1">আপনার গুগল শিটের Apps Script Deploy URL এখানে সংরক্ষিত থাকে।</p>
+        </div>
+
+        <div class="p-3 bg-emerald-50 rounded-2xl border border-emerald-200 text-emerald-900 space-y-1">
+          <div class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-emerald-600"></i> বর্তমান কানেকশন সক্রিয়:</div>
+          <div class="text-[11px] break-all font-mono opacity-80" id="currentActiveUrlDisplay"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 text-xs">
+        <button type="button" onclick="saveCustomApiUrl()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-xs transition">
+          সেভ ও টেস্ট কানেকশন
+        </button>
+        <button type="button" onclick="closeApiConfigModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl">
+          বন্ধ করুন
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= GOOGLE APPS SCRIPT CODE VIEWER MODAL ================= -->
+  <div id="appsScriptModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="relative bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-code text-indigo-600"></i> Google Apps Script Backend Code (`Code.gs`)
+        </h3>
+        <button onclick="closeAppsScriptModal()" class="text-slate-400 hover:text-slate-700 text-xl w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100">&times;</button>
+      </div>
+
+      <p class="text-xs text-slate-600">
+        আপনার Google Sheet-এ গিয়ে <strong>Extensions > Apps Script</strong> এ গিয়ে নিচের কোডটি পেস্ট করে <strong>Deploy > New Deployment (Web app, Anyone access)</strong> করুন:
+      </p>
+
+      <div class="relative">
+        <textarea id="appsScriptCodeArea" readonly rows="12" class="w-full bg-slate-900 text-emerald-400 p-3.5 rounded-2xl font-mono text-[11px] leading-relaxed select-all"></textarea>
+        <button onclick="copyAppsScriptCode()" class="absolute right-3 top-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm transition">
+          <i class="fa-solid fa-copy mr-1"></i> কোড কপি করুন
+        </button>
+      </div>
+
+      <div class="text-right pt-2 border-t border-slate-100">
+        <button onclick="closeAppsScriptModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl">
+          বন্ধ করুন
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= DETAILED PRODUCTION COST BREAKDOWN MODAL ================= -->
   <div id="costDetailsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
     <div class="relative bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 p-6">
@@ -918,6 +989,12 @@
 
   <!-- ================= SYSTEM CORE JAVASCRIPT ================= -->
   <script>
+    // Configuration & Google Apps Script Endpoint
+    const DEFAULT_API_URL = "https://script.google.com/macros/s/AKfycbwQINjklBIsgaPhzMjH67QeU2z7u-CiGxxP3Gkt4Q0Ab0fmLvHyn9W4lS5MI4wKorI/exec";
+    const CONFIG = {
+      API_URL: localStorage.getItem('garment_api_url') || DEFAULT_API_URL
+    };
+
     // Global Storage & State
     const STORAGE_KEY_RAW = 'garment_erp_raw_materials_v3';
     const STORAGE_KEY_DRESS = 'garment_erp_dress_catalog_v3';
@@ -930,16 +1007,20 @@
     let currentModalBatch = null;
     let costSplitChartInstance = null;
     let topDressesChartInstance = null;
+    let isOnlineConnected = true;
 
     // Initialize System
     document.addEventListener('DOMContentLoaded', () => {
       initDefaultDates();
-      loadAllData();
+      loadLocalData();
       renderAllViews();
       
       // Initialize dynamic form rows
       addMaterialRow();
       addLaborRow();
+
+      // Auto Sync with Google Sheet on Startup
+      syncWithGoogleSheet(false);
     });
 
     function initDefaultDates() {
@@ -951,9 +1032,127 @@
     }
 
     // -----------------------------------------------------------------
-    // 1. DATA PERSISTENCE & LOADING
+    // 1. GOOGLE APPS SCRIPT API ENGINE & SYNC
     // -----------------------------------------------------------------
-    function loadAllData() {
+    async function callGoogleSheetApi(action, payload = {}) {
+      const url = CONFIG.API_URL;
+      const requestData = {
+        action: action,
+        timestamp: new Date().toISOString(),
+        ...payload
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP Error ${response.status}`);
+        }
+
+        const json = await response.json();
+        setConnectionStatus(true);
+        return json;
+      } catch (err) {
+        console.warn(`Google Sheet API call (${action}) failed:`, err);
+        setConnectionStatus(false);
+        return { success: false, error: err.message };
+      }
+    }
+
+    async function syncWithGoogleSheet(isManual = false) {
+      const syncIcon = document.getElementById('syncIcon');
+      if (syncIcon) syncIcon.classList.add('fa-spin');
+
+      if (isManual) {
+        Swal.fire({
+          title: 'Google Sheet সিঙ্ক হচ্ছে...',
+          text: 'অনুগ্রহ করে অপেক্ষা করুন, ডাটা লোড করা হচ্ছে...',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+      }
+
+      try {
+        const res = await callGoogleSheetApi('getAllData');
+
+        if (syncIcon) syncIcon.classList.remove('fa-spin');
+
+        if (res && res.success && res.data) {
+          if (Array.isArray(res.data.rawMaterials)) rawMaterials = res.data.rawMaterials;
+          if (Array.isArray(res.data.dressCatalog)) dressCatalog = res.data.dressCatalog;
+          if (Array.isArray(res.data.productionBatches)) productionBatches = res.data.productionBatches;
+
+          saveLocalData();
+          renderAllViews();
+          setConnectionStatus(true);
+
+          if (isManual) {
+            Swal.fire({
+              icon: 'success',
+              title: 'গুগল শিটের সাথে সিঙ্ক সম্পন্ন!',
+              text: `${rawMaterials.length} টি কাঁচামাল, ${dressCatalog.length} টি ড্রেস ও ${productionBatches.length} টি প্রোডাকশন ব্যাচ লোড হয়েছে।`,
+              timer: 2000,
+              showConfirmButton: false,
+              toast: true,
+              position: 'top-end'
+            });
+          }
+        } else {
+          // If remote sheet is empty or new, push local data to Google Sheet
+          if (rawMaterials.length > 0 || dressCatalog.length > 0) {
+            await pushAllLocalDataToGoogleSheet();
+          }
+          if (isManual) {
+            Swal.fire('সিঙ্ক সম্পন্ন!', 'লোকাল ডাটা গুগল শিটের সাথে আপডেট হয়েছে।', 'success');
+          }
+        }
+      } catch (err) {
+        if (syncIcon) syncIcon.classList.remove('fa-spin');
+        console.error("Sync error:", err);
+        setConnectionStatus(false);
+        if (isManual) {
+          Swal.fire('অফলাইন মোড', 'গুগল শিটের সাথে সংযোগ করা যায়নি। লোকাল স্টোরেজ থেকে ডাটা লোড হয়েছে।', 'warning');
+        }
+      }
+    }
+
+    async function pushAllLocalDataToGoogleSheet() {
+      try {
+        await callGoogleSheetApi('syncAllData', {
+          rawMaterials: rawMaterials,
+          dressCatalog: dressCatalog,
+          productionBatches: productionBatches
+        });
+      } catch (e) {
+        console.error("Push to Google Sheet error:", e);
+      }
+    }
+
+    function setConnectionStatus(connected) {
+      isOnlineConnected = connected;
+      const badge = document.getElementById('sheetStatusBadge');
+      const text = document.getElementById('sheetStatusText');
+      if (badge && text) {
+        if (connected) {
+          badge.className = "bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-medium transition flex items-center gap-2 shadow-xs";
+          text.innerText = "Google Sheet Connected";
+        } else {
+          badge.className = "bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl font-medium transition flex items-center gap-2 shadow-xs";
+          text.innerText = "Offline / Local Mode";
+        }
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 2. DATA PERSISTENCE (LOCAL STORAGE & SAMPLES)
+    // -----------------------------------------------------------------
+    function loadLocalData() {
       try {
         const rawStr = localStorage.getItem(STORAGE_KEY_RAW);
         const dressStr = localStorage.getItem(STORAGE_KEY_DRESS);
@@ -963,7 +1162,6 @@
         dressCatalog = dressStr ? JSON.parse(dressStr) : [];
         productionBatches = prodStr ? JSON.parse(prodStr) : [];
 
-        // If completely empty, offer to load demo data or populate defaults
         if (rawMaterials.length === 0 && dressCatalog.length === 0) {
           populateInitialSampleData();
         }
@@ -972,7 +1170,7 @@
       }
     }
 
-    function saveAllData() {
+    function saveLocalData() {
       try {
         localStorage.setItem(STORAGE_KEY_RAW, JSON.stringify(rawMaterials));
         localStorage.setItem(STORAGE_KEY_DRESS, JSON.stringify(dressCatalog));
@@ -1032,35 +1230,21 @@
         }
       ];
 
-      saveAllData();
+      saveLocalData();
     }
 
     // -----------------------------------------------------------------
-    // 2. REFRESH & RENDER ALL VIEWS
+    // 3. REFRESH & RENDER ALL VIEWS
     // -----------------------------------------------------------------
-    function refreshAllViews(isManual = false) {
+    function renderAllViews() {
       updateKpis();
       populateDressDropdown();
       renderRawMaterialsTable();
       renderDressCatalog();
       renderProductionHistory();
       renderAnalyticsCharts();
-
-      if (isManual) {
-        Swal.fire({
-          icon: 'success',
-          title: 'সকল ডাটা রিফ্রেশ হয়েছে!',
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 1500
-        });
-      }
     }
 
-    // -----------------------------------------------------------------
-    // 3. KPI CALCULATIONS
-    // -----------------------------------------------------------------
     function updateKpis() {
       let totalPurchaseVal = 0;
       let currentRawVal = 0;
@@ -1148,7 +1332,6 @@
       div.id = rowId;
       div.className = "p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center hover:border-emerald-300 transition";
 
-      // Build options from rawMaterials
       let optionsHtml = '<option value="">-- কাঁচামাল সিলেক্ট করুন --</option>';
       rawMaterials.forEach(rm => {
         optionsHtml += `<option value="${rm.id}" data-unit="${rm.unit}" data-price="${rm.unitPrice}" data-stock="${rm.qtyCurrent}">${rm.name} [স্টক: ${rm.qtyCurrent} ${rm.unit} | দর: ৳${rm.unitPrice}]</option>`;
@@ -1208,7 +1391,6 @@
       const qtyInput = row.querySelector('.mat-qty');
       const qty = parseFloat(qtyInput.value) || 0;
 
-      // Check stock warning
       if (qty > stock) {
         qtyInput.classList.add('border-rose-400', 'bg-rose-50');
       } else {
@@ -1366,7 +1548,7 @@
     // -----------------------------------------------------------------
     // 8. PRODUCTION FORM SUBMISSION & AUTOMATIC STOCK DEDUCTION
     // -----------------------------------------------------------------
-    function handleProductionSubmit(e) {
+    async function handleProductionSubmit(e) {
       e.preventDefault();
 
       const dressId = document.getElementById('prodDressSelect').value;
@@ -1514,9 +1696,15 @@
         }
       });
 
-      // Save Production Batch
+      // Save Production Batch locally
       productionBatches.unshift(newBatch);
-      saveAllData();
+      saveLocalData();
+
+      // Send to Google Sheet API in Background
+      callGoogleSheetApi('saveProduction', {
+        batch: newBatch,
+        rawMaterialsUpdated: rawMaterials
+      });
 
       // Reset Form
       document.getElementById('productionCostingForm').reset();
@@ -1528,12 +1716,12 @@
       document.getElementById('selectedDressPreviewStrip').classList.add('hidden');
       recalculateLiveCosting();
 
-      refreshAllViews();
+      renderAllViews();
 
       // Show Success with Detailed Result Modal
       Swal.fire({
         icon: 'success',
-        title: 'প্রোডাকশন সফলভাবে সম্পন্ন ও স্টক কর্তন হয়েছে!',
+        title: 'প্রোডাকশন সম্পন্ন ও Google Sheet-এ সংরক্ষিত হয়েছে!',
         html: `
           <div class="text-left text-xs space-y-2 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
             <p><strong>ড্রেস:</strong> [${newBatch.dressCode}] ${newBatch.dressName}</p>
@@ -1580,7 +1768,7 @@
       document.getElementById('rawImagePreviewContainer').classList.add('hidden');
     }
 
-    function handleRawPurchaseSubmit(e) {
+    async function handleRawPurchaseSubmit(e) {
       e.preventDefault();
 
       const name = document.getElementById('rawName').value.trim();
@@ -1608,16 +1796,19 @@
       };
 
       rawMaterials.unshift(newRawItem);
-      saveAllData();
+      saveLocalData();
+
+      // Send to Google Sheet in background
+      callGoogleSheetApi('saveRawMaterial', { rawItem: newRawItem });
 
       document.getElementById('rawPurchaseForm').reset();
       clearRawImage();
       initDefaultDates();
-      refreshAllViews();
+      renderAllViews();
 
       Swal.fire({
         icon: 'success',
-        title: 'কাঁচামাল যুক্ত হয়েছে!',
+        title: 'কাঁচামাল যুক্ত ও Google Sheet-এ সিঙ্ক হয়েছে!',
         text: `${newRawItem.name} (${qty} ${unit}) সফলভাবে ইনভেন্টরিতে যুক্ত হয়েছে।`,
         timer: 1800,
         showConfirmButton: false,
@@ -1690,7 +1881,6 @@
         tbody.appendChild(tr);
       });
 
-      // Update Low Stock tab badge
       const badge = document.getElementById('lowStockRawBadge');
       if (lowStockCount > 0) {
         badge.innerText = lowStockCount;
@@ -1716,7 +1906,7 @@
     function deleteRawMaterial(id) {
       Swal.fire({
         title: 'মুছে ফেলতে চান?',
-        text: 'এই কাঁচামাল আইটেমটি স্থায়ীভাবে ডিলিট হবে।',
+        text: 'এই কাঁচামাল আইটেমটি ডিলিট হবে।',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#e11d48',
@@ -1726,8 +1916,9 @@
       }).then(res => {
         if (res.isConfirmed) {
           rawMaterials = rawMaterials.filter(r => r.id !== id);
-          saveAllData();
-          refreshAllViews();
+          saveLocalData();
+          callGoogleSheetApi('deleteRawMaterial', { id: id });
+          renderAllViews();
           Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
         }
       });
@@ -1760,7 +1951,7 @@
       document.getElementById('dressImagePreviewContainer').classList.add('hidden');
     }
 
-    function handleDressRegistrySubmit(e) {
+    async function handleDressRegistrySubmit(e) {
       e.preventDefault();
 
       const code = document.getElementById('dressCode').value.trim().toUpperCase();
@@ -1770,7 +1961,6 @@
       const notes = document.getElementById('dressNotes').value.trim();
       const imagePreviewSrc = document.getElementById('dressImagePreview').src;
 
-      // Check if code already exists
       const exists = dressCatalog.some(d => d.code === code);
       if (exists) {
         Swal.fire('ডুপ্লিকেট কোড', `এই কোড (${code}) ইতিমধ্যে অন্য একটি ড্রেসে ব্যবহৃত হয়েছে!`, 'warning');
@@ -1788,15 +1978,18 @@
       };
 
       dressCatalog.unshift(newDress);
-      saveAllData();
+      saveLocalData();
+
+      // Send to Google Sheet in background
+      callGoogleSheetApi('saveDress', { dress: newDress });
 
       document.getElementById('dressRegistryForm').reset();
       clearDressImage();
-      refreshAllViews();
+      renderAllViews();
 
       Swal.fire({
         icon: 'success',
-        title: 'ড্রেস ক্যাটালগে যুক্ত হয়েছে!',
+        title: 'ড্রেস ক্যাটালগে ও Google Sheet-এ যুক্ত হয়েছে!',
         text: `[${code}] ${name} সফলভাবে যুক্ত হয়েছে।`,
         timer: 1800,
         showConfirmButton: false,
@@ -1874,7 +2067,7 @@
     function deleteDress(id) {
       Swal.fire({
         title: 'মুছে ফেলতে চান?',
-        text: 'এই ড্রেস মডেলটি ক্যাটালগ থেকে মুছে ফেলা হবে।',
+        text: 'এই ড্রেস মডেলটি মুছে ফেলা হবে।',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#e11d48',
@@ -1884,8 +2077,9 @@
       }).then(res => {
         if (res.isConfirmed) {
           dressCatalog = dressCatalog.filter(d => d.id !== id);
-          saveAllData();
-          refreshAllViews();
+          saveLocalData();
+          callGoogleSheetApi('deleteDress', { id: id });
+          renderAllViews();
           Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
         }
       });
@@ -1955,7 +2149,7 @@
     function deleteProductionBatch(id) {
       Swal.fire({
         title: 'ব্যাচ রেকর্ড মুছতে চান?',
-        text: 'এই প্রোডাকশন হিসাবটি মুছে ফেলা হবে (কাঁচামাল স্টক অটো রিভার্স হবে না)।',
+        text: 'এই প্রোডাকশন হিসাবটি মুছে ফেলা হবে।',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#e11d48',
@@ -1965,8 +2159,9 @@
       }).then(res => {
         if (res.isConfirmed) {
           productionBatches = productionBatches.filter(b => b.id !== id);
-          saveAllData();
-          refreshAllViews();
+          saveLocalData();
+          callGoogleSheetApi('deleteProduction', { id: id });
+          renderAllViews();
           Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
         }
       });
@@ -2263,8 +2458,244 @@
     }
 
     // -----------------------------------------------------------------
-    // 15. BACKUP & RESTORE
+    // 15. GOOGLE SHEET CONFIGURATION & BACKUP MODALS
     // -----------------------------------------------------------------
+    function openApiConfigModal() {
+      document.getElementById('cfgApiUrl').value = CONFIG.API_URL;
+      document.getElementById('currentActiveUrlDisplay').innerText = CONFIG.API_URL;
+      document.getElementById('apiConfigModal').classList.remove('hidden');
+    }
+
+    function closeApiConfigModal() {
+      document.getElementById('apiConfigModal').classList.add('hidden');
+    }
+
+    async function saveCustomApiUrl() {
+      const val = document.getElementById('cfgApiUrl').value.trim();
+      if (!val) {
+        Swal.fire('URL আবশ্যক', 'অনুগ্রহ করে সঠিক Google Apps Script Web App URL দিন।', 'warning');
+        return;
+      }
+
+      CONFIG.API_URL = val;
+      localStorage.setItem('garment_api_url', val);
+      closeApiConfigModal();
+
+      Swal.fire({
+        title: 'সংযোগ পরীক্ষা করা হচ্ছে...',
+        text: 'Google Sheet-এ কল পাঠানো হচ্ছে...',
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      await syncWithGoogleSheet(true);
+    }
+
+    function openAppsScriptCodeModal() {
+      const gasCode = `// =========================================================================
+// GOOGLE APPS SCRIPT BACKEND FOR GARMENT PRODUCTION & COSTING ERP
+// =========================================================================
+
+function doGet(e) {
+  return handleRequest(e);
+}
+
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  var lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+  
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    initSheets(ss);
+    
+    var params = {};
+    if (e.postData && e.postData.contents) {
+      params = JSON.parse(e.postData.contents);
+    } else if (e.parameter) {
+      params = e.parameter;
+    }
+    
+    var action = params.action || 'getAllData';
+    var response = { success: true, action: action };
+    
+    if (action === 'getAllData') {
+      response.data = {
+        rawMaterials: getSheetData(ss, 'RawMaterials'),
+        dressCatalog: getSheetData(ss, 'DressCatalog'),
+        productionBatches: getSheetData(ss, 'ProductionBatches')
+      };
+    } else if (action === 'saveRawMaterial') {
+      upsertRow(ss, 'RawMaterials', params.rawItem);
+      response.message = 'Raw material saved';
+    } else if (action === 'saveDress') {
+      upsertRow(ss, 'DressCatalog', params.dress);
+      response.message = 'Dress saved';
+    } else if (action === 'saveProduction') {
+      upsertRow(ss, 'ProductionBatches', params.batch);
+      if (params.rawMaterialsUpdated && Array.isArray(params.rawMaterialsUpdated)) {
+        params.rawMaterialsUpdated.forEach(function(rm) {
+          upsertRow(ss, 'RawMaterials', rm);
+        });
+      }
+      response.message = 'Production saved and stock deducted';
+    } else if (action === 'syncAllData') {
+      if (params.rawMaterials) replaceSheetData(ss, 'RawMaterials', params.rawMaterials);
+      if (params.dressCatalog) replaceSheetData(ss, 'DressCatalog', params.dressCatalog);
+      if (params.productionBatches) replaceSheetData(ss, 'ProductionBatches', params.productionBatches);
+      response.message = 'All data synced';
+    } else if (action === 'deleteRawMaterial') {
+      deleteRowById(ss, 'RawMaterials', params.id);
+    } else if (action === 'deleteDress') {
+      deleteRowById(ss, 'DressCatalog', params.id);
+    } else if (action === 'deleteProduction') {
+      deleteRowById(ss, 'ProductionBatches', params.id);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify(response))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function initSheets(ss) {
+  var requiredSheets = ['RawMaterials', 'DressCatalog', 'ProductionBatches'];
+  requiredSheets.forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+      if (name === 'RawMaterials') {
+        sheet.appendRow(['id', 'name', 'category', 'unit', 'qtyPurchased', 'qtyCurrent', 'unitPrice', 'totalCost', 'supplier', 'purchaseDate', 'image']);
+      } else if (name === 'DressCatalog') {
+        sheet.appendRow(['id', 'code', 'name', 'category', 'targetSalePrice', 'image', 'notes']);
+      } else if (name === 'ProductionBatches') {
+        sheet.appendRow(['id', 'batchNo', 'date', 'dressId', 'dressCode', 'dressName', 'dressImage', 'batchQty', 'materialsUsed', 'laborCosts', 'overheadCosts', 'totalMaterialCost', 'totalLaborCost', 'totalOverheadCost', 'totalBatchCost', 'costPerDress', 'suggestedSellingPrice', 'notes']);
+      }
+    }
+  });
+}
+
+function getSheetData(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+  var rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return [];
+  var headers = rows[0];
+  var list = [];
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = row[j];
+      var key = headers[j];
+      if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+        try { val = JSON.parse(val); } catch(e) {}
+      }
+      obj[key] = val;
+    }
+    list.push(obj);
+  }
+  return list;
+}
+
+function upsertRow(ss, sheetName, dataObj) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return;
+  var rows = sheet.getDataRange().getValues();
+  var headers = rows[0];
+  var rowIndex = -1;
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] == dataObj.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+  
+  var rowValues = [];
+  headers.forEach(function(h) {
+    var v = dataObj[h];
+    if (typeof v === 'object' && v !== null) {
+      v = JSON.stringify(v);
+    }
+    rowValues.push(v !== undefined ? v : '');
+  });
+  
+  if (rowIndex > 0) {
+    sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
+  } else {
+    sheet.appendRow(rowValues);
+  }
+}
+
+function replaceSheetData(ss, sheetName, dataArray) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return;
+  sheet.clearContents();
+  if (!dataArray || dataArray.length === 0) return;
+  
+  var sample = dataArray[0];
+  var headers = Object.keys(sample);
+  sheet.appendRow(headers);
+  
+  var allRows = [];
+  dataArray.forEach(function(item) {
+    var r = [];
+    headers.forEach(function(h) {
+      var v = item[h];
+      if (typeof v === 'object' && v !== null) v = JSON.stringify(v);
+      r.push(v !== undefined ? v : '');
+    });
+    allRows.push(r);
+  });
+  
+  if (allRows.length > 0) {
+    sheet.getRange(2, 1, allRows.length, headers.length).setValues(allRows);
+  }
+}
+
+function deleteRowById(ss, sheetName, id) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return;
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] == id) {
+      sheet.deleteRow(i + 1);
+      break;
+    }
+  }
+}`;
+
+      document.getElementById('appsScriptCodeArea').value = gasCode;
+      document.getElementById('appsScriptModal').classList.remove('hidden');
+    }
+
+    function closeAppsScriptModal() {
+      document.getElementById('appsScriptModal').classList.add('hidden');
+    }
+
+    function copyAppsScriptCode() {
+      const txt = document.getElementById('appsScriptCodeArea');
+      txt.select();
+      navigator.clipboard.writeText(txt.value);
+      Swal.fire({
+        icon: 'success',
+        title: 'কোড কপি হয়েছে!',
+        text: 'আপনার Google Sheet Apps Script এডিটর এ পেস্ট করে Deploy করুন।',
+        timer: 1800,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
     function backupSystemData() {
       Swal.fire({
         title: 'ডাটা ব্যাকআপ ও রিস্টোর',
@@ -2301,9 +2732,10 @@
                 rawMaterials = data.rawMaterials || [];
                 dressCatalog = data.dressCatalog || [];
                 productionBatches = data.productionBatches || [];
-                saveAllData();
-                refreshAllViews();
-                Swal.fire('সফল!', 'ডাটা সফলভাবে রিস্টোর হয়েছে।', 'success');
+                saveLocalData();
+                pushAllLocalDataToGoogleSheet();
+                renderAllViews();
+                Swal.fire('সফল!', 'ডাটা সফলভাবে রিস্টোর ও Google Sheet-এ সিঙ্ক হয়েছে।', 'success');
               } else {
                 Swal.fire('ত্রুটি!', 'ভুল ফাইল ফরম্যাট।', 'error');
               }
@@ -2330,23 +2762,6 @@
       a.download = `Garment_ERP_Backup_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    }
-
-    function loadDemoDataConfirmation() {
-      Swal.fire({
-        title: 'ডেমো ডাটা লোড করতে চান?',
-        text: 'বর্তমান ডাটাসহ নতুন টেস্ট ডেমো ডাটা যুক্ত হবে।',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'হ্যাঁ, লোড করুন',
-        cancelButtonText: 'বাতিল'
-      }).then(res => {
-        if (res.isConfirmed) {
-          populateInitialSampleData();
-          refreshAllViews();
-          Swal.fire('ডেমো ডাটা লোড হয়েছে!', '', 'success');
-        }
-      });
     }
 
     // -----------------------------------------------------------------
