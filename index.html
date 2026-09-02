@@ -136,6 +136,14 @@
         <button onclick="backupSystemData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-xl font-semibold transition flex items-center gap-1.5" title="ডাটা ব্যাকআপ বা রিস্টোর">
           <i class="fa-solid fa-database"></i> <span class="hidden sm:inline">ব্যাকআপ</span>
         </button>
+
+        <button onclick="clearAllData(true)" class="bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-600/40 px-3 py-1.5 rounded-xl font-semibold transition flex items-center gap-1.5 shadow-xs" title="সকল ডেমো ডাটা মুছে ফ্রেশ ও শূন্য (০) করুন">
+          <i class="fa-solid fa-trash-can"></i> <span class="hidden sm:inline">ডাটা ক্লিয়ার</span>
+        </button>
+
+        <button onclick="loadSampleDemoData()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 px-2.5 py-1.5 rounded-xl text-xs transition" title="পরীক্ষামূলক ডেমো ডাটা লোড">
+          <i class="fa-solid fa-flask"></i> <span class="hidden md:inline">ডেমো ডাটা</span>
+        </button>
       </div>
 
     </div>
@@ -1161,10 +1169,6 @@
         rawMaterials = rawStr ? JSON.parse(rawStr) : [];
         dressCatalog = dressStr ? JSON.parse(dressStr) : [];
         productionBatches = prodStr ? JSON.parse(prodStr) : [];
-
-        if (rawMaterials.length === 0 && dressCatalog.length === 0) {
-          populateInitialSampleData();
-        }
       } catch (err) {
         console.error("Error loading data from localStorage:", err);
       }
@@ -1178,6 +1182,59 @@
       } catch (err) {
         console.error("Error saving data:", err);
       }
+    }
+
+    function clearAllData(confirmFirst = true) {
+      const doClear = () => {
+        rawMaterials = [];
+        dressCatalog = [];
+        productionBatches = [];
+        saveLocalData();
+        renderAllViews();
+        Swal.fire({
+          icon: 'success',
+          title: 'সব ডেমো ডাটা মুছে ফেলা হয়েছে!',
+          text: 'ইনভেন্টরি এখন সম্পূর্ণ ফ্রেশ ও শূন্য (০)।',
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      };
+
+      if (confirmFirst) {
+        Swal.fire({
+          title: 'সব ডাটা ক্লিয়ার করতে চান?',
+          text: 'সকল কাঁচামাল, ড্রেস এবং প্রোডাকশন হিসাব শূন্য (০) হয়ে যাবে।',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#e11d48',
+          cancelButtonColor: '#64748b',
+          confirmButtonText: 'হ্যাঁ, ক্লিয়ার করুন',
+          cancelButtonText: 'বাতিল'
+        }).then(res => {
+          if (res.isConfirmed) doClear();
+        });
+      } else {
+        doClear();
+      }
+    }
+
+    function loadSampleDemoData() {
+      Swal.fire({
+        title: 'ডেমো ডাটা লোড করবেন?',
+        text: 'সিস্টেম টেস্ট করার জন্য কিছু নমুনা কাঁচামাল ও কস্টিং যোগ হবে।',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'হ্যাঁ, লোড করুন',
+        cancelButtonText: 'বাতিল'
+      }).then(res => {
+        if (res.isConfirmed) {
+          populateInitialSampleData();
+          renderAllViews();
+          Swal.fire('ডেমো ডাটা লোড হয়েছে!', '', 'success');
+        }
+      });
     }
 
     function populateInitialSampleData() {
