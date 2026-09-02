@@ -1392,11 +1392,21 @@
         const dressStr = localStorage.getItem(STORAGE_KEY_DRESS);
         const prodStr = localStorage.getItem(STORAGE_KEY_PROD);
 
+        if (!rawStr && !dressStr && !prodStr) {
+          populateInitialSampleData();
+          return;
+        }
+
         rawMaterials = rawStr ? JSON.parse(rawStr) : [];
         dressCatalog = dressStr ? JSON.parse(dressStr) : [];
         productionBatches = prodStr ? JSON.parse(prodStr) : [];
+
+        if (rawMaterials.length === 0 && dressCatalog.length === 0 && productionBatches.length === 0) {
+          populateInitialSampleData();
+        }
       } catch (err) {
         console.error("Error loading data from localStorage:", err);
+        populateInitialSampleData();
       }
     }
 
