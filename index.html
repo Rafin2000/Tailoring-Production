@@ -1298,32 +1298,52 @@
         if (syncIcon) syncIcon.classList.remove('fa-spin');
 
         if (res && res.success && res.data) {
-          if (Array.isArray(res.data.rawMaterials)) rawMaterials = res.data.rawMaterials;
-          if (Array.isArray(res.data.dressCatalog)) dressCatalog = res.data.dressCatalog;
-          if (Array.isArray(res.data.productionBatches)) productionBatches = res.data.productionBatches;
+          const remoteRaw = Array.isArray(res.data.rawMaterials) ? res.data.rawMaterials : [];
+          const remoteDress = Array.isArray(res.data.dressCatalog) ? res.data.dressCatalog : [];
+          const remoteProd = Array.isArray(res.data.productionBatches) ? res.data.productionBatches : [];
 
-          saveLocalData();
-          renderAllViews();
-          setConnectionStatus(true);
+          const hasRemoteData = (remoteRaw.length > 0 || remoteDress.length > 0 || remoteProd.length > 0);
+          const hasLocalData = (rawMaterials.length > 0 || dressCatalog.length > 0 || productionBatches.length > 0);
 
-          if (isManual) {
-            Swal.fire({
-              icon: 'success',
-              title: 'গুগল শিটের সাথে সিঙ্ক সম্পন্ন!',
-              text: `${rawMaterials.length} টি কাঁচামাল, ${dressCatalog.length} টি ড্রেস ও ${productionBatches.length} টি প্রোডাকশন ব্যাচ লোড হয়েছে।`,
-              timer: 2000,
-              showConfirmButton: false,
-              toast: true,
-              position: 'top-end'
-            });
+          if (hasRemoteData) {
+            rawMaterials = remoteRaw;
+            dressCatalog = remoteDress;
+            productionBatches = remoteProd;
+            saveLocalData();
+            renderAllViews();
+            setConnectionStatus(true);
+
+            if (isManual) {
+              Swal.fire({
+                icon: 'success',
+                title: 'গুগল শিটের সাথে সিঙ্ক সম্পন্ন!',
+                text: `${rawMaterials.length} টি কাঁচামাল, ${dressCatalog.length} টি ড্রেস ও ${productionBatches.length} টি প্রোডাকশন ব্যাচ লোড হয়েছে।`,
+                timer: 2000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+              });
+            }
+          } else if (hasLocalData) {
+            // Sheet is empty, push local data to Sheet
+            await pushAllLocalDataToGoogleSheet();
+            setConnectionStatus(true);
+            if (isManual) {
+              Swal.fire('সিঙ্ক সম্পন্ন!', 'লোকাল ডাটা গুগল শিটে সফলভাবে আপলোড হয়েছে।', 'success');
+            }
+          } else {
+            setConnectionStatus(true);
+            if (isManual) {
+              Swal.fire('শিট খালি', 'আপনার গুগল শিটে এখনও কোনো ডাটা নেই। নতুন এন্ট্রি বা ডেমো ডাটা লোড করুন।', 'info');
+            }
           }
         } else {
-          // If remote sheet is empty or new, push local data to Google Sheet
+          // If remote sheet connection fails
           if (rawMaterials.length > 0 || dressCatalog.length > 0) {
             await pushAllLocalDataToGoogleSheet();
           }
           if (isManual) {
-            Swal.fire('সিঙ্ক সম্পন্ন!', 'লোকাল ডাটা গুগল শিটের সাথে আপডেট হয়েছে।', 'success');
+            Swal.fire('অফলাইন মোড', 'গুগল শিট থেকে ডাটা পাওয়া যায়নি। লোকাল মেমোরি ব্যবহার হচ্ছে।', 'info');
           }
         }
       } catch (err) {
@@ -2307,9 +2327,11 @@
       const tbody = document.getElementById('rawMaterialsTableBody');
       tbody.innerHTML = '';
 
+      const badge = document.getElementById('lowStockRawBadge');
       if (rawMaterials.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">কোনো কাঁচামাল পাওয়া যায়নি</td></tr>`;
         document.getElementById('rawLedgerStats').innerText = `০ টি কাঁচামাল`;
+        if (badge) badge.classList.add('hidden');
         return;
       }
 
