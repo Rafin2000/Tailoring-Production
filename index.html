@@ -1223,19 +1223,21 @@
     let topDressesChartInstance = null;
     let isOnlineConnected = true;
 
-    // Initialize System
-    document.addEventListener('DOMContentLoaded', () => {
-      initDefaultDates();
-      loadLocalData();
-      renderAllViews();
-      
-      // Initialize dynamic form rows
-      addMaterialRow();
-      addLaborRow();
+    // Robust System Initialization
+    function initializeApp() {
+      try { initDefaultDates(); } catch(e) { console.error("Init dates error:", e); }
+      try { loadLocalData(); } catch(e) { console.error("Load local data error:", e); }
+      try { renderAllViews(); } catch(e) { console.error("Render all views error:", e); }
+      try { addMaterialRow(); } catch(e) { console.error("Add material row error:", e); }
+      try { addLaborRow(); } catch(e) { console.error("Add labor row error:", e); }
+      try { syncWithGoogleSheet(false); } catch(e) { console.error("Sync startup error:", e); }
+    }
 
-      // Auto Sync with Google Sheet on Startup
-      syncWithGoogleSheet(false);
-    });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeApp);
+    } else {
+      initializeApp();
+    }
 
     function initDefaultDates() {
       const today = new Date().toISOString().split('T')[0];
@@ -1530,12 +1532,12 @@
     // 3. REFRESH & RENDER ALL VIEWS
     // -----------------------------------------------------------------
     function renderAllViews() {
-      updateKpis();
-      populateDressDropdown();
-      renderRawMaterialsTable();
-      renderDressCatalog();
-      renderProductionHistory();
-      renderAnalyticsCharts();
+      try { updateKpis(); } catch (e) { console.error("KPI error:", e); }
+      try { populateDressDropdown(); } catch (e) { console.error("Dress dropdown error:", e); }
+      try { renderRawMaterialsTable(); } catch (e) { console.error("Raw table error:", e); }
+      try { renderDressCatalog(); } catch (e) { console.error("Dress catalog error:", e); }
+      try { renderProductionHistory(); } catch (e) { console.error("History error:", e); }
+      try { renderAnalyticsCharts(); } catch (e) { console.error("Charts error:", e); }
     }
 
     function updateKpis() {
@@ -3060,6 +3062,12 @@
     // 13. CHARTS & ANALYTICS
     // -----------------------------------------------------------------
     function renderAnalyticsCharts() {
+      if (typeof Chart === 'undefined') return;
+
+      const canvasSplit = document.getElementById('costSplitChart');
+      const canvasTop = document.getElementById('topDressesChart');
+      if (!canvasSplit || !canvasTop) return;
+
       // 1. Cost Split Doughnut Chart
       let totalMat = 0, totalLab = 0, totalOver = 0;
       productionBatches.forEach(b => {
@@ -3068,7 +3076,7 @@
         totalOver += (b.totalOverheadCost || 0);
       });
 
-      const ctxSplit = document.getElementById('costSplitChart').getContext('2d');
+      const ctxSplit = canvasSplit.getContext('2d');
       if (costSplitChartInstance) costSplitChartInstance.destroy();
 
       costSplitChartInstance = new Chart(ctxSplit, {
@@ -3100,7 +3108,7 @@
       const labels = Object.keys(dressCountMap).slice(0, 5);
       const data = labels.map(k => dressCountMap[k]);
 
-      const ctxTop = document.getElementById('topDressesChart').getContext('2d');
+      const ctxTop = canvasTop.getContext('2d');
       if (topDressesChartInstance) topDressesChartInstance.destroy();
 
       topDressesChartInstance = new Chart(ctxTop, {
