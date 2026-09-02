@@ -3,198 +3,312 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tailoring Production & Costing System</title>
+  <title>Apparel Production & Unit Cost Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-100 min-h-screen py-8 px-4 font-sans text-slate-800">
+<body class="bg-slate-50 min-h-screen text-slate-800 p-4 sm:p-6 font-sans">
 
-  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-    <div class="bg-slate-900 text-white p-6 flex items-center justify-between">
+  <div class="max-w-6xl mx-auto space-y-6">
+    
+    <!-- Top Bar -->
+    <div class="bg-slate-900 text-white p-5 rounded-xl flex flex-wrap justify-between items-center shadow-lg gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Tailoring Production Tracker</h1>
-        <p class="text-xs text-slate-400 mt-1">Costing, Lead Time & Material Breakdown</p>
+        <h1 class="text-xl font-bold tracking-tight">Tailoring ERP: Unit Cost & Production Engine</h1>
+        <p class="text-xs text-slate-400 mt-0.5">BOM Material Breakdown | Salary Allocation | Lead Time Tracking</p>
       </div>
-      <i class="fa-solid fa-scissors text-3xl text-amber-500"></i>
+      <div id="syncStatus" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-amber-400">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> ফেচিং ডেটা...
+      </div>
     </div>
 
-    <form id="costingForm" class="p-6 space-y-6">
-      <div class="border-b pb-5">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">১. সাধারণ তথ্য ও সময়কাল</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">পোশাকের নাম / ডিজাইন</label>
-            <input type="text" id="dressName" required placeholder="e.g. Designer Kurti" class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">শুরুর তারিখ (Start Date)</label>
-            <input type="date" id="startDate" required class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" onchange="calculateAll()">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">শেষের তারিখ (End Date)</label>
-            <input type="date" id="endDate" required class="w-full border rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" onchange="calculateAll()">
-          </div>
+    <!-- Production Meta Form -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+      <div>
+        <label class="block text-xs font-bold text-slate-600 mb-1">প্রোডাক্ট কোড / স্টাইল</label>
+        <select id="selProduct" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" onchange="loadRecipe()">
+          <option value="DR-001">DR-001 (Party Kurti)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 mb-1">অর্ডার কোয়ান্টিটি (Pcs)</label>
+        <input type="number" id="inpQty" min="1" value="100" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" oninput="recalcEverything()">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 mb-1">শুরুর তারিখ (Start Date)</label>
+        <input type="date" id="dtStart" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" onchange="calcLeadDays()">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 mb-1">রেডি তারিখ (Ready Date)</label>
+        <input type="date" id="dtReady" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" onchange="calcLeadDays()">
+      </div>
+    </div>
+
+    <!-- Grid Split: Material vs Overhead/Labour -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Material Consumption & Wastage Tracking (2 Cols) -->
+      <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-layer-group text-blue-600"></i> ১. মেটেরিয়াল ব্যবহার ও ওয়েস্টেজ ট্র্যাকিং
+          </h2>
+          <span class="text-xs text-slate-500 font-medium">BOM ভেরিয়েন্স পর্যবেক্ষণ</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                <th class="p-2.5">আইটেম</th>
+                <th class="p-2.5">স্ট্যান্ডার্ড প্রয়োজন</th>
+                <th class="p-2.5">প্রকৃত ব্যবহার (Actual)</th>
+                <th class="p-2.5">ওয়েস্টেজ</th>
+                <th class="p-2.5 text-right">মোট খরচ</th>
+              </tr>
+            </thead>
+            <tbody id="bomTableBody" class="divide-y divide-slate-100">
+              <!-- JS Generated Rows -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="border-b pb-5">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">২. কাপড়ের হিসাব (Fabric)</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">মোট কাপড় (গজ)</label>
-            <input type="number" step="0.1" id="fabricQty" value="0" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
+      <!-- Live Cost Distribution (1 Col) -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4 flex flex-col justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-3 flex items-center gap-2">
+            <i class="fa-solid fa-calculator text-emerald-600"></i> ২. প্রতি পিস খরচ বিভাজন
+          </h2>
+
+          <div class="space-y-3 pt-3 text-xs">
+            <div class="flex justify-between items-center py-1.5 border-b border-dashed">
+              <span class="text-slate-600">মেটেরিয়াল কস্ট (Fabric + Trims):</span>
+              <span id="lblUnitMat" class="font-bold text-slate-800">৳ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center py-1.5 border-b border-dashed">
+              <span class="text-slate-600">লেবার কস্ট (Salary Allocated):</span>
+              <span id="lblUnitLabour" class="font-bold text-slate-800">৳ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center py-1.5 border-b border-dashed">
+              <span class="text-slate-600">ওভারহেড কস্ট (Factory Rent & Util):</span>
+              <span id="lblUnitOverhead" class="font-bold text-slate-800">৳ 0.00</span>
+            </div>
+            <div class="flex justify-between items-center py-2 bg-slate-50 px-2 rounded-lg text-sm font-extrabold text-slate-900 border">
+              <span>প্রতি পিস মোট খরচ:</span>
+              <span id="lblGrandUnitCost" class="text-emerald-600">৳ 0.00</span>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">প্রতি গজের দর (৳)</label>
-            <input type="number" step="0.1" id="fabricRate" value="0" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
+        </div>
+
+        <div class="pt-4 border-t space-y-3">
+          <div class="grid grid-cols-2 gap-2 text-center text-xs">
+            <div class="bg-slate-100 p-2.5 rounded-lg">
+              <span class="block text-slate-500 text-[10px]">মোট প্রোডাকশন সময়</span>
+              <span id="lblLeadDays" class="text-base font-bold text-blue-600">0 দিন</span>
+            </div>
+            <div class="bg-slate-100 p-2.5 rounded-lg">
+              <span class="block text-slate-500 text-[10px]">লটের সর্বমোট বাজেট</span>
+              <span id="lblLotTotal" class="text-base font-bold text-slate-800">৳ 0</span>
+            </div>
           </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">ওয়েস্টেজ (%)</label>
-            <input type="number" step="0.1" id="fabricWastage" value="0" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">মোট কাপড় খরচ</label>
-            <input type="text" id="totalFabricCost" readonly value="৳ 0.00" class="w-full bg-slate-100 font-bold border rounded-lg p-2 text-sm text-slate-700">
-          </div>
+
+          <button id="btnSubmit" onclick="submitToSheet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow flex items-center justify-center gap-2 text-xs tracking-wider uppercase transition">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Google Sheet-এ সিঙ্ক করুন
+          </button>
         </div>
       </div>
 
-      <div class="border-b pb-5">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3">৩. অন্যান্য ও মেকিং খরচ</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">এক্সেসরিজ (বোতাম, জিপার, সুতা)</label>
-            <input type="number" step="0.1" id="accCost" value="0" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">কারিগর মজুরি / কাটিং বিল</label>
-            <input type="number" step="0.1" id="laborCost" value="0" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">অন্যান্য (আয়রন, ওয়াশ, ট্যাগ)</label>
-            <input type="number" step="0.1" id="otherCost" value="0" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">মোট তৈরি পোশাকের সংখ্যা (Pcs)</label>
-            <input type="number" id="batchPcs" value="1" min="1" class="w-full border rounded-lg p-2 text-sm outline-none" oninput="calculateAll()">
-          </div>
-        </div>
-      </div>
+    </div>
 
-      <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-        <div>
-          <span class="block text-xs text-slate-500 font-medium">সময় লেগেছে</span>
-          <span id="dispLeadDays" class="text-xl font-extrabold text-blue-600">0 দিন</span>
-        </div>
-        <div>
-          <span class="block text-xs text-slate-500 font-medium">মোট কাপড় খরচ</span>
-          <span id="dispFabricCost" class="text-xl font-extrabold text-slate-800">৳ 0</span>
-        </div>
-        <div>
-          <span class="block text-xs text-slate-500 font-medium">সর্বমোট খরচ</span>
-          <span id="dispTotalCost" class="text-xl font-extrabold text-emerald-600">৳ 0</span>
-        </div>
-        <div>
-          <span class="block text-xs text-slate-500 font-medium">প্রতি পিস খরচ</span>
-          <span id="dispPerPiece" class="text-xl font-extrabold text-amber-600">৳ 0</span>
-        </div>
-      </div>
-
-      <div class="flex justify-end pt-2">
-        <button type="submit" id="saveBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-6 rounded-lg shadow flex items-center gap-2">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>Save to Google Sheet</span>
-        </button>
-      </div>
-    </form>
   </div>
 
   <script>
-    // আপনার Apps Script Web App URL এখানে দিন
-    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+    // আপনার Apps Script Web App URL দিন
+    const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
 
-    let calculatedData = {};
+    // ডিফল্ট ডেটাসেট (Sheets কানেক্ট না হলেও যেন টেস্ট করা যায়)
+    let state = {
+      bom: [
+        { Item_Name: "Main Fabric", Qty_Per_Pc: 2.5, Unit: "Yard", Unit_Cost: 180 },
+        { Item_Name: "Lining", Qty_Per_Pc: 1.0, Unit: "Yard", Unit_Cost: 100 },
+        { Item_Name: "Lace", Qty_Per_Pc: 2.0, Unit: "Meter", Unit_Cost: 30 },
+        { Item_Name: "Button", Qty_Per_Pc: 6, Unit: "Pcs", Unit_Cost: 5 },
+        { Item_Name: "Packaging/Trims", Qty_Per_Pc: 1, Unit: "Set", Unit_Cost: 20 }
+      ],
+      salaries: [
+        { Dept_Name: "Cutting", Cost_Per_Piece: 25 },
+        { Dept_Name: "Sewing", Cost_Per_Piece: 125 },
+        { Dept_Name: "Finishing/QC", Cost_Per_Piece: 70 }
+      ],
+      overheads: [
+        { Expense_Type: "Factory Rent & Util", Overhead_Per_Piece: 30 }
+      ]
+    };
 
-    function calculateAll() {
-      // 1. Lead Days Calculation
-      const start = new Date(document.getElementById('startDate').value);
-      const end = new Date(document.getElementById('endDate').value);
-      let days = 0;
-      if (!isNaN(start) && !isNaN(end) && end >= start) {
-        const diffTime = Math.abs(end - start);
-        days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start & end
+    let calculatedPayload = {};
+
+    window.onload = function() {
+      // ডিফল্ট ডেট সেট
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('dtStart').value = today;
+      document.getElementById('dtReady').value = today;
+      calcLeadDays();
+      renderBOMTable();
+      recalcEverything();
+      fetchServerConfig();
+    };
+
+    function fetchServerConfig() {
+      if (APPS_SCRIPT_URL.includes("YOUR_APPS_SCRIPT")) {
+        document.getElementById('syncStatus').innerText = "অফলাইন মোড (লোকাল ডেটা)";
+        return;
       }
-      document.getElementById('dispLeadDays').innerText = days + " দিন";
+      fetch(`${APPS_SCRIPT_URL}?action=getInitialConfig`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.bom && data.bom.length) state.bom = data.bom;
+          if (data.salaries && data.salaries.length) state.salaries = data.salaries;
+          if (data.overheads && data.overheads.length) state.overheads = data.overheads;
+          document.getElementById('syncStatus').innerText = "অনলাইন (শিট সংযুক্ত)";
+          renderBOMTable();
+          recalcEverything();
+        })
+        .catch(err => {
+          document.getElementById('syncStatus').innerText = "অফলাইন ফলব্যাক মোড";
+        });
+    }
 
-      // 2. Fabric Cost
-      const qty = parseFloat(document.getElementById('fabricQty').value) || 0;
-      const rate = parseFloat(document.getElementById('fabricRate').value) || 0;
-      const wastage = parseFloat(document.getElementById('fabricWastage').value) || 0;
+    function calcLeadDays() {
+      const d1 = new Date(document.getElementById('dtStart').value);
+      const d2 = new Date(document.getElementById('dtReady').value);
+      let days = 1;
+      if (!isNaN(d1) && !isNaN(d2) && d2 >= d1) {
+        days = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+      }
+      document.getElementById('lblLeadDays').innerText = `${days} দিন`;
+      return days;
+    }
+
+    function renderBOMTable() {
+      const tbody = document.getElementById('bomTableBody');
+      tbody.innerHTML = "";
+      const orderQty = parseFloat(document.getElementById('inpQty').value) || 0;
+
+      state.bom.forEach((item, idx) => {
+        const standardReq = item.Qty_Per_Pc * orderQty;
+        tbody.innerHTML += `
+          <tr>
+            <td class="p-2.5 font-medium">${item.Item_Name}</td>
+            <td class="p-2.5">${standardReq.toFixed(2)} ${item.Unit}</td>
+            <td class="p-2.5">
+              <input type="number" step="0.1" id="actual_${idx}" value="${standardReq.toFixed(2)}" 
+                class="w-24 bg-slate-50 border rounded p-1 text-xs outline-none" 
+                oninput="recalcRow(${idx}, ${standardReq}, ${item.Unit_Cost})">
+            </td>
+            <td class="p-2.5 text-amber-600 font-semibold" id="wastage_${idx}">0 ${item.Unit}</td>
+            <td class="p-2.5 text-right font-bold text-slate-800" id="cost_${idx}">৳ ${(standardReq * item.Unit_Cost).toFixed(2)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function recalcRow(idx, standardReq, unitCost) {
+      const actualVal = parseFloat(document.getElementById(`actual_${idx}`).value) || 0;
+      const wastage = actualVal - standardReq;
+      const unit = state.bom[idx].Unit;
       
-      const rawFabricCost = qty * rate;
-      const fabricTotal = rawFabricCost + (rawFabricCost * (wastage / 100));
-      document.getElementById('totalFabricCost').value = "৳ " + fabricTotal.toFixed(2);
-      document.getElementById('dispFabricCost').innerText = "৳ " + fabricTotal.toFixed(2);
+      const wastageEl = document.getElementById(`wastage_${idx}`);
+      wastageEl.innerText = `${wastage.toFixed(2)} ${unit}`;
+      wastageEl.className = wastage > 0 ? "p-2.5 text-red-600 font-semibold" : "p-2.5 text-emerald-600 font-semibold";
 
-      // 3. Other Costs
-      const acc = parseFloat(document.getElementById('accCost').value) || 0;
-      const labor = parseFloat(document.getElementById('laborCost').value) || 0;
-      const other = parseFloat(document.getElementById('otherCost').value) || 0;
-      const pcs = parseInt(document.getElementById('batchPcs').value) || 1;
+      const totalCost = actualVal * unitCost;
+      document.getElementById(`cost_${idx}`).innerText = `৳ ${totalCost.toFixed(2)}`;
+      
+      recalcSummary();
+    }
 
-      const grandTotal = fabricTotal + acc + labor + other;
-      const perPiece = grandTotal / pcs;
+    function recalcEverything() {
+      renderBOMTable();
+      recalcSummary();
+    }
 
-      document.getElementById('dispTotalCost').innerText = "৳ " + grandTotal.toFixed(2);
-      document.getElementById('dispPerPiece').innerText = "৳ " + perPiece.toFixed(2);
+    function recalcSummary() {
+      const orderQty = parseFloat(document.getElementById('inpQty').value) || 1;
+      let totalMaterial = 0;
+      let matList = [];
 
-      // Cache data
-      calculatedData = {
-        dressName: document.getElementById('dressName').value,
-        startDate: document.getElementById('startDate').value,
-        endDate: document.getElementById('endDate').value,
-        leadDays: days,
-        fabricCost: fabricTotal.toFixed(2),
-        accCost: acc.toFixed(2),
-        laborCost: labor.toFixed(2),
-        otherCost: other.toFixed(2),
-        totalCost: grandTotal.toFixed(2),
-        qty: pcs,
-        perPieceCost: perPiece.toFixed(2)
+      state.bom.forEach((item, idx) => {
+        const actualInput = document.getElementById(`actual_${idx}`);
+        const actualVal = actualInput ? parseFloat(actualInput.value) || 0 : (item.Qty_Per_Pc * orderQty);
+        const cost = actualVal * item.Unit_Cost;
+        totalMaterial += cost;
+        matList.push({
+          name: item.Item_Name,
+          required: (item.Qty_Per_Pc * orderQty).toFixed(2),
+          actual: actualVal.toFixed(2),
+          wastage: (actualVal - (item.Qty_Per_Pc * orderQty)).toFixed(2),
+          cost: cost.toFixed(2)
+        });
+      });
+
+      // স্যালারি ও ওভারহেড রেট ক্যালকুলেশন
+      const unitLabour = state.salaries.reduce((sum, s) => sum + parseFloat(s.Cost_Per_Piece), 0);
+      const unitOverhead = state.overheads.reduce((sum, o) => sum + parseFloat(o.Overhead_Per_Piece), 0);
+
+      const totalLabour = unitLabour * orderQty;
+      const totalOverhead = unitOverhead * orderQty;
+
+      const unitMaterial = totalMaterial / orderQty;
+      const grandUnitCost = unitMaterial + unitLabour + unitOverhead;
+      const lotTotal = totalMaterial + totalLabour + totalOverhead;
+
+      // UI আপডেট
+      document.getElementById('lblUnitMat').innerText = `৳ ${unitMaterial.toFixed(2)}`;
+      document.getElementById('lblUnitLabour').innerText = `৳ ${unitLabour.toFixed(2)}`;
+      document.getElementById('lblUnitOverhead').innerText = `৳ ${unitOverhead.toFixed(2)}`;
+      document.getElementById('lblGrandUnitCost').innerText = `৳ ${grandUnitCost.toFixed(2)}`;
+      document.getElementById('lblLotTotal').innerText = `৳ ${Math.round(lotTotal).toLocaleString()}`;
+
+      calculatedPayload = {
+        productId: document.getElementById('selProduct').value,
+        orderQty: orderQty,
+        startDate: document.getElementById('dtStart').value,
+        readyDate: document.getElementById('dtReady').value,
+        leadDays: calcLeadDays(),
+        materials: matList,
+        totalMaterialCost: totalMaterial.toFixed(2),
+        totalLabourCost: totalLabour.toFixed(2),
+        totalOverheadCost: totalOverhead.toFixed(2),
+        totalProjectCost: lotTotal.toFixed(2),
+        perPieceCost: grandUnitCost.toFixed(2)
       };
     }
 
-    document.getElementById('costingForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      calculateAll();
-
-      const btn = document.getElementById('saveBtn');
+    function submitToSheet() {
+      const btn = document.getElementById('btnSubmit');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> সিঙ্ক হচ্ছে...`;
 
-      fetch(SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(calculatedData)
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(calculatedPayload)
       })
       .then(res => res.json())
-      .then(response => {
-        if(response.status === 'success') {
-          alert("সফলভাবে Google Sheet-এ সেভ হয়েছে! Batch ID: " + response.batchId);
-          document.getElementById('costingForm').reset();
-          calculateAll();
+      .then(res => {
+        if(res.status === "success") {
+          alert(`প্রোডাকশন ডেটা সংরক্ষিত হয়েছে!\nProduction Order ID: ${res.prodId}`);
         } else {
-          alert("এরর: " + response.message);
+          alert("এরর: " + res.message);
         }
       })
-      .catch(err => {
-        alert("কানেকশন সমস্যা হয়েছে: " + err.message);
-      })
+      .catch(err => alert("কানেকশন এরর: " + err.toString()))
       .finally(() => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Save to Google Sheet';
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Google Sheet-এ সিঙ্ক করুন`;
       });
-    });
+    }
   </script>
 </body>
 </html>
