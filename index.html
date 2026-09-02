@@ -976,6 +976,177 @@
     </div>
   </div>
 
+  <!-- ================= EDIT RAW MATERIAL MODAL ================= -->
+  <div id="editRawMaterialModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="relative bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-sm"><i class="fa-solid fa-pen-to-square"></i></span>
+          কাঁচামালের তথ্য ও স্টক এডিট করুন
+        </h3>
+        <button onclick="closeEditRawMaterialModal()" class="text-slate-400 hover:text-slate-700 text-xl w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100">&times;</button>
+      </div>
+
+      <form id="editRawMaterialForm" onsubmit="handleEditRawMaterialSubmit(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="editRawId">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">কাঁচামাল / কাপড়ের নাম <span class="text-rose-500">*</span></label>
+          <input type="text" id="editRawName" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ক্যাটাগরি</label>
+            <select id="editRawCategory" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+              <option value="কাপড় (Fabric)">কাপড় (Fabric)</option>
+              <option value="লেইস ও বর্ডার (Lace)">লেইস ও বর্ডার (Lace)</option>
+              <option value="বোতাম (Buttons)">বোতাম (Buttons)</option>
+              <option value="সুতা ও এমব্রয়ডারি (Thread)">সুতা ও এমব্রয়ডারি (Thread)</option>
+              <option value="চেইন ও জিপার (Zipper)">চেইন ও জিপার (Zipper)</option>
+              <option value="আস্তরণ (Lining)">আস্তরণ (Lining)</option>
+              <option value="কারচুপি ও স্টোন (Stones)">কারচুপি ও স্টোন (Stones)</option>
+              <option value="প্যাকেজিং (Packaging)">প্যাকেজিং (Packaging)</option>
+              <option value="অন্যান্য (Other)">অন্যান্য (Other)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">একক (Unit)</label>
+            <select id="editRawUnit" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+              <option value="গজ (Yds)">গজ (Yds)</option>
+              <option value="মিটার (Mtr)">মিটার (Mtr)</option>
+              <option value="পিস (Pcs)">পিস (Pcs)</option>
+              <option value="রোল (Roll)">রোল (Roll)</option>
+              <option value="ডজন (Dzn)">ডজন (Dzn)</option>
+              <option value="কেজি (Kg)">কেজি (Kg)</option>
+              <option value="প্যাকেট (Pkt)">প্যাকেট (Pkt)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">মোট ক্রয় পরিমাণ</label>
+            <input type="number" id="editRawQtyPurchased" min="0" step="any" required oninput="calcEditRawTotal()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
+          </div>
+          <div>
+            <label class="block font-bold text-emerald-800 mb-1">বর্তমান অবশিষ্ট স্টক</label>
+            <input type="number" id="editRawQtyCurrent" min="0" step="any" required class="w-full px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-xl font-black text-emerald-800">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">একক দর (৳)</label>
+            <input type="number" id="editRawUnitPrice" min="0" step="any" required oninput="calcEditRawTotal()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">মোট ক্রয় মূল্য (৳)</label>
+            <input type="number" id="editRawTotalCost" readonly class="w-full px-3.5 py-2.5 bg-sky-50 border border-sky-200 rounded-xl font-bold text-sky-800">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">দোকান / সাপ্লায়ার</label>
+            <input type="text" id="editRawSupplier" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ক্রয়ের তারিখ</label>
+            <input type="date" id="editRawDate" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ছবি পরিবর্তন (ঐচ্ছিক)</label>
+            <div class="flex items-center gap-2">
+              <input type="file" id="editRawImageFile" accept="image/*" onchange="previewEditRawImage(event)" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-2.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700">
+              <img id="editRawImagePreview" class="w-9 h-9 object-cover rounded-lg border border-slate-200 shrink-0" src="" alt="preview">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>আপডেট সংরক্ষণ ও সিঙ্ক করুন</span>
+          </button>
+          <button type="button" onclick="closeEditRawMaterialModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl">
+            বাতিল
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= EDIT DRESS MODAL ================= -->
+  <div id="editDressModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="relative bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <span class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm"><i class="fa-solid fa-pen-to-square"></i></span>
+          ড্রেস মডেল তথ্য এডিট করুন
+        </h3>
+        <button onclick="closeEditDressModal()" class="text-slate-400 hover:text-slate-700 text-xl w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100">&times;</button>
+      </div>
+
+      <form id="editDressForm" onsubmit="handleEditDressSubmit(event)" class="space-y-3.5 text-xs">
+        <input type="hidden" id="editDressId">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ড্রেস কোড <span class="text-rose-500">*</span></label>
+            <input type="text" id="editDressCode" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl uppercase font-mono font-bold text-indigo-900">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">ক্যাটাগরি</label>
+            <select id="editDressCategory" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+              <option value="থ্রি-পিস (Three Piece)">থ্রি-পিস</option>
+              <option value="গাউন (Gown)">গাউন</option>
+              <option value="কুর্তি (Kurti)">কুর্তি</option>
+              <option value="লেহেঙ্গা (Lehenga)">লেহেঙ্গা</option>
+              <option value="পাঞ্জাবি (Panjabi)">পাঞ্জাবি</option>
+              <option value="ফ্রক / টপস (Frock)">ফ্রক / টপস</option>
+              <option value="শাড়ি (Saree)">শাড়ি</option>
+              <option value="অন্যান্য (Other)">অন্যান্য</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ড্রেসের নাম <span class="text-rose-500">*</span></label>
+          <input type="text" id="editDressName" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">টার্গেট বিক্রয় মূল্য (৳)</label>
+          <input type="number" id="editDressTargetPrice" min="0" step="any" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-800">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">নোট / স্পেসিফিকেশন</label>
+          <textarea id="editDressNotes" rows="2" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">ছবি পরিবর্তন (ঐচ্ছিক)</label>
+          <div class="flex items-center gap-3">
+            <input type="file" id="editDressImageFile" accept="image/*" onchange="previewEditDressImage(event)" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700">
+            <img id="editDressImagePreview" class="w-10 h-10 object-cover rounded-lg border border-slate-200" src="" alt="preview">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-1.5">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>আপডেট সংরক্ষণ ও সিঙ্ক করুন</span>
+          </button>
+          <button type="button" onclick="closeEditDressModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl">
+            বাতিল
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= IMAGE LIGHTBOX MODAL ================= -->
   <div id="imageLightboxModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 hidden">
     <div class="relative bg-white p-3 rounded-2xl max-w-lg w-full shadow-2xl space-y-3">
@@ -2009,10 +2180,15 @@
           <td class="py-2.5 px-3 text-right font-bold text-slate-900">৳ ${(item.totalCost || 0).toLocaleString()}</td>
           <td class="py-2.5 px-3 text-right font-black text-emerald-700 text-sm">${currentStock} ${item.unit}</td>
           <td class="py-2.5 px-3 text-center">${statusBadge}</td>
-          <td class="py-2.5 px-3 text-center">
-            <button onclick="deleteRawMaterial('${item.id}')" title="মুছে ফেলুন" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition flex items-center justify-center text-xs">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
+          <td class="py-2.5 px-3 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openEditRawMaterialModal('${item.id}')" title="কাঁচামাল ও স্টক এডিট করুন" class="w-7 h-7 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 transition flex items-center justify-center text-xs">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteRawMaterial('${item.id}')" title="মুছে ফেলুন" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition flex items-center justify-center text-xs">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           </td>
         `;
         tbody.appendChild(tr);
@@ -2024,6 +2200,116 @@
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
+      }
+    }
+
+    function openEditRawMaterialModal(id) {
+      const item = rawMaterials.find(r => r.id === id);
+      if (!item) return;
+
+      document.getElementById('editRawId').value = item.id;
+      document.getElementById('editRawName').value = item.name || '';
+      document.getElementById('editRawCategory').value = item.category || 'কাপড় (Fabric)';
+      document.getElementById('editRawUnit').value = item.unit || 'গজ (Yds)';
+      document.getElementById('editRawQtyPurchased').value = item.qtyPurchased || 0;
+      document.getElementById('editRawQtyCurrent').value = item.qtyCurrent !== undefined ? item.qtyCurrent : (item.qtyPurchased || 0);
+      document.getElementById('editRawUnitPrice').value = item.unitPrice || 0;
+      document.getElementById('editRawTotalCost').value = item.totalCost || ((item.qtyPurchased || 0) * (item.unitPrice || 0));
+      document.getElementById('editRawSupplier').value = item.supplier || '';
+      document.getElementById('editRawDate').value = item.purchaseDate || new Date().toISOString().split('T')[0];
+      
+      const prev = document.getElementById('editRawImagePreview');
+      if (item.image) {
+        prev.src = item.image;
+        prev.classList.remove('hidden');
+      } else {
+        prev.src = '';
+        prev.classList.add('hidden');
+      }
+      document.getElementById('editRawImageFile').value = '';
+
+      document.getElementById('editRawMaterialModal').classList.remove('hidden');
+    }
+
+    function closeEditRawMaterialModal() {
+      document.getElementById('editRawMaterialModal').classList.add('hidden');
+    }
+
+    function calcEditRawTotal() {
+      const qty = parseFloat(document.getElementById('editRawQtyPurchased').value) || 0;
+      const price = parseFloat(document.getElementById('editRawUnitPrice').value) || 0;
+      document.getElementById('editRawTotalCost').value = (qty * price).toFixed(2);
+    }
+
+    function previewEditRawImage(e) {
+      const file = e.target.files[0];
+      if (file) {
+        resizeImageFile(file, 300, 300, (resizedDataUrl) => {
+          const prev = document.getElementById('editRawImagePreview');
+          prev.src = resizedDataUrl;
+          prev.classList.remove('hidden');
+        });
+      }
+    }
+
+    async function handleEditRawMaterialSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('editRawId').value;
+      const item = rawMaterials.find(r => r.id === id);
+      if (!item) return;
+
+      const name = document.getElementById('editRawName').value.trim();
+      const category = document.getElementById('editRawCategory').value;
+      const unit = document.getElementById('editRawUnit').value;
+      const qtyPurchased = parseFloat(document.getElementById('editRawQtyPurchased').value) || 0;
+      const qtyCurrent = parseFloat(document.getElementById('editRawQtyCurrent').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('editRawUnitPrice').value) || 0;
+      const totalCost = parseFloat(document.getElementById('editRawTotalCost').value) || (qtyPurchased * unitPrice);
+      const supplier = document.getElementById('editRawSupplier').value.trim();
+      const purchaseDate = document.getElementById('editRawDate').value;
+      const imgPreview = document.getElementById('editRawImagePreview').src;
+
+      item.name = name;
+      item.category = category;
+      item.unit = unit;
+      item.qtyPurchased = qtyPurchased;
+      item.qtyCurrent = qtyCurrent;
+      item.unitPrice = unitPrice;
+      item.totalCost = totalCost;
+      item.supplier = supplier || 'মার্কেট সোর্স';
+      item.purchaseDate = purchaseDate;
+      if (imgPreview && imgPreview.startsWith('data:image')) {
+        item.image = imgPreview;
+      }
+
+      saveLocalData();
+      renderAllViews();
+      closeEditRawMaterialModal();
+
+      Swal.fire({
+        title: 'গুগল শিটে আপডেট হচ্ছে...',
+        text: `"${item.name}" আপডেট করা হচ্ছে...`,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      const res = await callGoogleSheetApi('saveRawMaterial', { rawItem: item });
+      if (res && res.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'কাঁচামাল আপডেট সম্পন্ন!',
+          text: `"${item.name}" সফলভাবে আপডেট ও গুগল শিটে সংরক্ষিত হয়েছে।`,
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'লোকালে আপডেট হয়েছে (শিট অফলাইন)',
+          text: `"${item.name}" ব্রাউজারে আপডেট হয়েছে।`
+        });
       }
     }
 
@@ -2195,6 +2481,9 @@
             <button onclick="startProductionForDress('${dress.id}')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
               <i class="fa-solid fa-calculator"></i> কস্টিং শুরু করুন
             </button>
+            <button onclick="openEditDressModal('${dress.id}')" title="ড্রেস তথ্য এডিট করুন" class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition flex items-center justify-center text-xs">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
             <button onclick="deleteDress('${dress.id}')" title="ডিলিট" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition flex items-center justify-center text-xs">
               <i class="fa-solid fa-trash-can"></i>
             </button>
@@ -2203,6 +2492,100 @@
 
         container.appendChild(div);
       });
+    }
+
+    function openEditDressModal(id) {
+      const dress = dressCatalog.find(d => d.id === id);
+      if (!dress) return;
+
+      document.getElementById('editDressId').value = dress.id;
+      document.getElementById('editDressCode').value = dress.code || '';
+      document.getElementById('editDressName').value = dress.name || '';
+      document.getElementById('editDressCategory').value = dress.category || 'থ্রি-পিস (Three Piece)';
+      document.getElementById('editDressTargetPrice').value = dress.targetSalePrice || '';
+      document.getElementById('editDressNotes').value = dress.notes || '';
+      
+      const prev = document.getElementById('editDressImagePreview');
+      if (dress.image) {
+        prev.src = dress.image;
+        prev.classList.remove('hidden');
+      } else {
+        prev.src = '';
+        prev.classList.add('hidden');
+      }
+      document.getElementById('editDressImageFile').value = '';
+
+      document.getElementById('editDressModal').classList.remove('hidden');
+    }
+
+    function closeEditDressModal() {
+      document.getElementById('editDressModal').classList.add('hidden');
+    }
+
+    function previewEditDressImage(e) {
+      const file = e.target.files[0];
+      if (file) {
+        resizeImageFile(file, 300, 300, (resizedDataUrl) => {
+          const prev = document.getElementById('editDressImagePreview');
+          prev.src = resizedDataUrl;
+          prev.classList.remove('hidden');
+        });
+      }
+    }
+
+    async function handleEditDressSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('editDressId').value;
+      const dress = dressCatalog.find(d => d.id === id);
+      if (!dress) return;
+
+      const newCode = document.getElementById('editDressCode').value.trim().toUpperCase();
+      const codeExists = dressCatalog.some(d => d.code === newCode && d.id !== id);
+      if (codeExists) {
+        Swal.fire('ডুপ্লিকেট কোড', `এই কোড (${newCode}) অন্য ড্রেসে ইতিমধ্যে ব্যবহৃত হচ্ছে!`, 'warning');
+        return;
+      }
+
+      dress.code = newCode;
+      dress.name = document.getElementById('editDressName').value.trim();
+      dress.category = document.getElementById('editDressCategory').value;
+      dress.targetSalePrice = parseFloat(document.getElementById('editDressTargetPrice').value) || 0;
+      dress.notes = document.getElementById('editDressNotes').value.trim();
+
+      const imgPreview = document.getElementById('editDressImagePreview').src;
+      if (imgPreview && imgPreview.startsWith('data:image')) {
+        dress.image = imgPreview;
+      }
+
+      saveLocalData();
+      renderAllViews();
+      closeEditDressModal();
+
+      Swal.fire({
+        title: 'গুগল শিটে আপডেট হচ্ছে...',
+        text: `[${dress.code}] ${dress.name} আপডেট করা হচ্ছে...`,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      const res = await callGoogleSheetApi('saveDress', { dress: dress });
+      if (res && res.success) {
+        Swal.fire({
+          icon: 'success',
+          title: 'ড্রেস ক্যাটালগ আপডেট সম্পন্ন!',
+          text: `[${dress.code}] ${dress.name} গুগল শিটে সংরক্ষিত হয়েছে।`,
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      } else {
+        Swal.fire({
+          icon: 'warning',
+          title: 'লোকালে আপডেট হয়েছে (শিট অফলাইন)',
+          text: `ড্রেস মডেল ব্রাউজারে আপডেট হয়েছে।`
+        });
+      }
     }
 
     function startProductionForDress(dressId) {
