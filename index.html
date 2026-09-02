@@ -3,311 +3,2377 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apparel Production & Unit Cost Engine</title>
+  <title>গার্মেন্টস প্রোডাকশন, কাঁচামাল ক্রয় ও ড্রেস কস্টিং ইআরপি (Garment Production & Costing ERP)</title>
+  
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          },
+          fontFamily: {
+            sans: ['Hind Siliguri', 'Plus Jakarta Sans', 'Segoe UI', 'sans-serif'],
+            heading: ['Outfit', 'Hind Siliguri', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Hind Siliguri (Bangla) & Outfit / Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Chart.js for Visual Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SweetAlert2 for Modern Alerts & Confirmations -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- SheetJS for High Quality Excel Export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Hind Siliguri', 'Plus Jakarta Sans', sans-serif;
+    }
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Outfit', 'Hind Siliguri', sans-serif;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    }
+    /* Custom Modern Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    /* Glass Effect */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    /* Print Styles for Job Card & Cost Sheet */
+    @media print {
+      body * { visibility: hidden !important; }
+      #printableJobCard, #printableJobCard * { visibility: visible !important; }
+      #printableJobCard {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 24px;
+        background: white;
+        display: block !important;
+      }
+    }
+  </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 p-4 sm:p-6 font-sans">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
 
-  <div class="max-w-6xl mx-auto space-y-6">
-    
-    <!-- Top Bar -->
-    <div class="bg-slate-900 text-white p-5 rounded-xl flex flex-wrap justify-between items-center shadow-lg gap-4">
-      <div>
-        <h1 class="text-xl font-bold tracking-tight">Tailoring ERP: Unit Cost & Production Engine</h1>
-        <p class="text-xs text-slate-400 mt-0.5">BOM Material Breakdown | Salary Allocation | Lead Time Tracking</p>
-      </div>
-      <div id="syncStatus" class="text-xs bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-amber-400">
-        <i class="fa-solid fa-circle-notch fa-spin"></i> ফেচিং ডেটা...
-      </div>
-    </div>
-
-    <!-- Production Meta Form -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-      <div>
-        <label class="block text-xs font-bold text-slate-600 mb-1">প্রোডাক্ট কোড / স্টাইল</label>
-        <select id="selProduct" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" onchange="loadRecipe()">
-          <option value="DR-001">DR-001 (Party Kurti)</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 mb-1">অর্ডার কোয়ান্টিটি (Pcs)</label>
-        <input type="number" id="inpQty" min="1" value="100" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" oninput="recalcEverything()">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 mb-1">শুরুর তারিখ (Start Date)</label>
-        <input type="date" id="dtStart" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" onchange="calcLeadDays()">
-      </div>
-      <div>
-        <label class="block text-xs font-bold text-slate-600 mb-1">রেডি তারিখ (Ready Date)</label>
-        <input type="date" id="dtReady" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm outline-none" onchange="calcLeadDays()">
-      </div>
-    </div>
-
-    <!-- Grid Split: Material vs Overhead/Labour -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- ================= TOP NAVIGATION HEADER ================= -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-xl border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-3">
       
-      <!-- Material Consumption & Wastage Tracking (2 Cols) -->
-      <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div class="flex justify-between items-center border-b pb-3">
-          <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <i class="fa-solid fa-layer-group text-blue-600"></i> ১. মেটেরিয়াল ব্যবহার ও ওয়েস্টেজ ট্র্যাকিং
-          </h2>
-          <span class="text-xs text-slate-500 font-medium">BOM ভেরিয়েন্স পর্যবেক্ষণ</span>
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/30 text-lg font-bold">
+          <i class="fa-solid fa-scissors"></i>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-xl font-bold tracking-wide flex items-center gap-2">
+            Garment Production & Costing ERP
+            <span class="bg-gradient-to-r from-sky-400 to-emerald-400 text-slate-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">v3.0 Pro</span>
+          </h1>
+          <p class="text-xs text-slate-400">কাঁচামাল ক্রয়, ড্রেস ক্যাটালগ, কারিগর স্যালারি ও নিখুঁত কস্টিং ক্যালকুলেটর</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        <button onclick="exportAllDataToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl font-semibold shadow-sm transition flex items-center gap-1.5" title="সম্পূর্ণ হিসাব এক্সেল ফাইলে ডাউনলোড করুন">
+          <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Excel Export</span>
+        </button>
+
+        <button onclick="backupSystemData()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-xl font-semibold transition flex items-center gap-1.5" title="ডাটা ব্যাকআপ বা রিস্টোর">
+          <i class="fa-solid fa-database"></i> <span class="hidden sm:inline">ব্যাকআপ / রিস্টোর</span>
+        </button>
+
+        <button onclick="loadDemoDataConfirmation()" class="bg-amber-600/90 hover:bg-amber-600 text-white px-3 py-2 rounded-xl font-semibold transition flex items-center gap-1.5" title="ডেমো ডাটা লোড করুন">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="hidden sm:inline">ডেমো ডাটা</span>
+        </button>
+
+        <button onclick="refreshAllViews(true)" class="bg-sky-600 hover:bg-sky-500 text-white px-3.5 py-2 rounded-xl font-semibold shadow-md shadow-sky-600/20 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-rotate mr-1" id="refreshIcon"></i> রিফ্রেশ
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 w-full space-y-6 flex-1">
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      
+      <!-- KPI: Total Purchases -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-600">মোট কাঁচামাল ক্রয়</span>
+          <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm"><i class="fa-solid fa-cart-shopping"></i></span>
+        </div>
+        <h3 id="kpi-total-purchase" class="text-xl sm:text-2xl font-black text-slate-900">৳ 0</h3>
+        <p class="text-[11px] text-slate-400 mt-0.5" id="kpi-purchase-items-count">০ টি আইটেম ক্রয়</p>
+      </div>
+
+      <!-- KPI: Current Raw Stock Valuation -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition bg-gradient-to-br from-emerald-50/40 to-white">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">মজুত কাঁচামাল মূল্য</span>
+          <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm"><i class="fa-solid fa-boxes-stacked"></i></span>
+        </div>
+        <h3 id="kpi-raw-stock-val" class="text-xl sm:text-2xl font-black text-emerald-700">৳ 0</h3>
+        <p class="text-[11px] text-emerald-600 mt-0.5 font-medium" id="kpi-raw-stock-count">অবশিষ্ট ইনভেন্টরি</p>
+      </div>
+
+      <!-- KPI: Total Production Batches -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition bg-gradient-to-br from-purple-50/40 to-white">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-800">সম্পন্ন প্রোডাকশন</span>
+          <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm"><i class="fa-solid fa-industry"></i></span>
+        </div>
+        <h3 id="kpi-total-batches" class="text-xl sm:text-2xl font-black text-purple-700">0 ব্যাচ</h3>
+        <p class="text-[11px] text-purple-600 mt-0.5 font-medium" id="kpi-total-pcs-produced">মোট ০ পিস পোশাক তৈরি</p>
+      </div>
+
+      <!-- KPI: Total Production Expense -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition bg-gradient-to-br from-amber-50/50 to-white">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-800">মোট উৎপাদন ব্যয়</span>
+          <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm"><i class="fa-solid fa-bangladeshi-taka-sign"></i></span>
+        </div>
+        <h3 id="kpi-total-prod-cost" class="text-xl sm:text-2xl font-black text-amber-700">৳ 0</h3>
+        <p class="text-[11px] text-amber-600 mt-0.5 font-medium">কাঁচামাল + মজুরি + ওভারহেড</p>
+      </div>
+
+      <!-- KPI: Average Cost Per Dress -->
+      <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition col-span-2 sm:col-span-1 bg-gradient-to-br from-sky-50/60 to-white">
+        <div class="flex items-center justify-between text-slate-500 mb-1">
+          <span class="text-xs font-bold uppercase tracking-wider text-sky-900">গড় ড্রেস প্রতি খরচ</span>
+          <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-sm"><i class="fa-solid fa-shirt"></i></span>
+        </div>
+        <h3 id="kpi-avg-dress-cost" class="text-xl sm:text-2xl font-black text-sky-700">৳ 0</h3>
+        <p class="text-[11px] text-sky-600 mt-0.5 font-medium" id="kpi-dress-models-count">০ টি ডিজাইন মডেল</p>
+      </div>
+
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <div class="flex items-center gap-2 bg-slate-200/80 p-1.5 rounded-2xl max-w-full overflow-x-auto text-xs sm:text-sm font-semibold shadow-inner">
+      
+      <button onclick="switchTab('production')" id="tab-btn-production" class="tab-btn active px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-calculator text-amber-300"></i> প্রোডাকশন ও ড্রেস কস্টিং
+      </button>
+
+      <button onclick="switchTab('purchase')" id="tab-btn-purchase" class="tab-btn text-slate-700 hover:text-slate-900 px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-boxes-packing"></i> কাঁচামাল ক্রয় ও স্টক ইন
+        <span id="lowStockRawBadge" class="hidden bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+      </button>
+
+      <button onclick="switchTab('dresses')" id="tab-btn-dresses" class="tab-btn text-slate-700 hover:text-slate-900 px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-vest-patches"></i> ড্রেস ক্যাটালগ ও কোড
+      </button>
+
+      <button onclick="switchTab('history')" id="tab-btn-history" class="tab-btn text-slate-700 hover:text-slate-900 px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-file-invoice-dollar"></i> কস্টিং হিস্ট্রি ও জব কার্ড
+      </button>
+
+      <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn text-slate-700 hover:text-slate-900 px-4 py-2.5 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+        <i class="fa-solid fa-chart-pie"></i> চার্ট ও অ্যানালিটিক্স
+      </button>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: PRODUCTION & DRESS COSTING FORM (CORE FEATURE) -->
+    <!-- ========================================================================= -->
+    <div id="tab-content-production" class="tab-content space-y-6">
+      
+      <form id="productionCostingForm" onsubmit="handleProductionSubmit(event)" class="space-y-6">
+        
+        <!-- Step 1: Select Dress Profile & Batch Size -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-sm font-black">১</span>
+              ড্রেস নির্বাচন ও প্রোডাকশন পরিমাণ (Dress Selection & Batch Qty)
+            </h2>
+            <button type="button" onclick="switchTab('dresses')" class="text-xs text-sky-600 hover:text-sky-800 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-circle-plus"></i> নতুন ড্রেস কোড যোগ করুন
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+            
+            <!-- Dress Selection Dropdown -->
+            <div class="sm:col-span-5">
+              <label class="block font-bold text-slate-700 mb-1.5 text-xs">ড্রেস কোড ও নাম নির্বাচন করুন <span class="text-rose-500">*</span></label>
+              <select id="prodDressSelect" required onchange="handleDressSelectChange()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition font-semibold text-slate-800">
+                <option value="">-- ড্রেস নির্বাচন করুন --</option>
+              </select>
+            </div>
+
+            <!-- Batch Quantity (Pcs) -->
+            <div class="sm:col-span-3">
+              <label class="block font-bold text-slate-700 mb-1.5 text-xs">মোট কত পিস তৈরি হবে? (Batch Qty) <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <input type="number" id="prodBatchQty" min="1" step="1" value="1" required oninput="recalculateLiveCosting()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition font-black text-slate-900 text-lg">
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Pcs</span>
+              </div>
+            </div>
+
+            <!-- Production Date -->
+            <div class="sm:col-span-4">
+              <label class="block font-bold text-slate-700 mb-1.5 text-xs">প্রোডাকশন / তৈরির তারিখ</label>
+              <input type="date" id="prodDate" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition text-slate-700 font-medium">
+            </div>
+
+          </div>
+
+          <!-- Selected Dress Preview Strip (Hidden until selected) -->
+          <div id="selectedDressPreviewStrip" class="hidden bg-sky-50/70 border border-sky-200/80 rounded-xl p-3.5 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <img id="stripDressImg" src="" alt="Dress" class="w-12 h-12 object-cover rounded-lg border border-sky-200 bg-white">
+              <div>
+                <h4 id="stripDressName" class="font-bold text-slate-900 text-sm">--</h4>
+                <div class="flex items-center gap-2 text-xs text-slate-500">
+                  <span id="stripDressCode" class="font-mono bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">--</span>
+                  <span id="stripDressCategory" class="text-slate-600">--</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-[11px] text-slate-400 block">টার্গেট বিক্রয় মূল্য</span>
+              <span id="stripTargetPrice" class="font-bold text-emerald-700 text-sm">৳ 0</span>
+            </div>
+          </div>
         </div>
 
+        <!-- Step 2: Raw Material Consumption Rows (Stock Deduction from Purchase Inventory) -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-black">২</span>
+                কাঁচামাল ব্যবহার ও স্টক কর্তন (Materials Consumed from Purchase Stock)
+              </h2>
+              <p class="text-xs text-slate-400">ক্রয়কৃত ইনভেন্টরি থেকে যে যে জিনিস ড্রেস তৈরিতে লেগেছে তা সিলেক্ট করুন (স্বয়ংক্রিয় স্টক বাদ যাবে)</p>
+            </div>
+
+            <button type="button" onclick="addMaterialRow()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto">
+              <i class="fa-solid fa-plus"></i> আরো কাঁচামাল যোগ করুন
+            </button>
+          </div>
+
+          <!-- Dynamic Material Rows Container -->
+          <div id="materialRowsContainer" class="space-y-3">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <!-- Material Subtotal Summary Bar -->
+          <div class="flex flex-wrap items-center justify-between bg-emerald-50/60 border border-emerald-200/70 p-3 rounded-xl text-xs sm:text-sm font-bold text-emerald-900">
+            <span>মোট কাঁচামাল বাবদ খরচ:</span>
+            <span id="materialSubtotalDisplay" class="text-base sm:text-lg font-black text-emerald-700">৳ 0.00</span>
+          </div>
+        </div>
+
+        <!-- Step 3: Labor Salary & Production Wages (Days Worked / Piece Rate) -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-black">৩</span>
+                কারিগর মজুরি ও স্যালারি যোগ (Production Salary & Days Worked)
+              </h2>
+              <p class="text-xs text-slate-400">কারিগর কয় দিন কাজ করেছে (দিন × দৈনিক মজুরি) অথবা পিস ভিত্তিক মজুরি যোগ করুন</p>
+            </div>
+
+            <button type="button" onclick="addLaborRow()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto">
+              <i class="fa-solid fa-plus"></i> আরো কারিগর / ধাপ যোগ করুন
+            </button>
+          </div>
+
+          <!-- Dynamic Labor Rows Container -->
+          <div id="laborRowsContainer" class="space-y-3">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <!-- Labor Subtotal Summary Bar -->
+          <div class="flex flex-wrap items-center justify-between bg-purple-50/60 border border-purple-200/70 p-3 rounded-xl text-xs sm:text-sm font-bold text-purple-900">
+            <span>মোট কারিগর স্যালারি ও মজুরি:</span>
+            <span id="laborSubtotalDisplay" class="text-base sm:text-lg font-black text-purple-700">৳ 0.00</span>
+          </div>
+        </div>
+
+        <!-- Step 4: Overhead & Additional Expenses (Optional) -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-black">৪</span>
+              অন্যান্য আনুষঙ্গিক খরচ (Overhead & Packaging - ঐচ্ছিক)
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-slate-600 mb-1 text-xs">ইলেকট্রিসিটি / আয়রন / ফিনিশিং (৳)</label>
+              <input type="number" id="overheadElectricity" min="0" step="any" value="0" oninput="recalculateLiveCosting()" placeholder="0.00" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1 text-xs">প্যাকেজিং বক্স ও হ্যাংট্যাগ (৳)</label>
+              <input type="number" id="overheadPackaging" min="0" step="any" value="0" oninput="recalculateLiveCosting()" placeholder="0.00" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-600 mb-1 text-xs">যাতায়াত / অন্যান্য মিসেলেনিয়াস (৳)</label>
+              <input type="number" id="overheadMisc" min="0" step="any" value="0" oninput="recalculateLiveCosting()" placeholder="0.00" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: LIVE COSTING MATRIX & SUBMISSION -->
+        <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 text-white p-6 rounded-3xl shadow-2xl border border-sky-800/40 space-y-6">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/80 pb-4">
+            <div>
+              <span class="text-xs uppercase font-extrabold tracking-widest text-sky-400">লাইভ কস্টিং ফলাফল (Real-time Calculation)</span>
+              <h3 class="text-lg sm:text-xl font-black text-white">স্বয়ংক্রিয় উৎপাদন ব্যয় ও প্রতি ড্রেসের খরচ</h3>
+            </div>
+            <div class="bg-sky-500/20 border border-sky-400/30 px-3.5 py-1.5 rounded-full text-xs font-bold text-sky-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt text-amber-300"></i> অটোমেটিক ক্যালকুলেশন
+            </div>
+          </div>
+
+          <!-- 4-Pillars Summary Breakdown -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <span class="text-xs text-slate-400 font-semibold block mb-1">কাঁচামাল খরচ</span>
+              <span id="liveMaterialCost" class="text-lg font-bold text-emerald-400">৳ 0.00</span>
+              <span id="liveMaterialPerPc" class="text-[11px] text-slate-400 block mt-0.5">৳ 0 / pc</span>
+            </div>
+
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <span class="text-xs text-slate-400 font-semibold block mb-1">কারিগর মজুরি/স্যালারি</span>
+              <span id="liveLaborCost" class="text-lg font-bold text-purple-400">৳ 0.00</span>
+              <span id="liveLaborPerPc" class="text-[11px] text-slate-400 block mt-0.5">৳ 0 / pc</span>
+            </div>
+
+            <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <span class="text-xs text-slate-400 font-semibold block mb-1">ওভারহেড ও অন্যান্য</span>
+              <span id="liveOverheadCost" class="text-lg font-bold text-amber-400">৳ 0.00</span>
+              <span id="liveOverheadPerPc" class="text-[11px] text-slate-400 block mt-0.5">৳ 0 / pc</span>
+            </div>
+
+            <div class="bg-sky-500/10 border border-sky-400/40 rounded-2xl p-3.5">
+              <span class="text-xs text-sky-300 font-semibold block mb-1">মোট ব্যাচ খরচ (Total)</span>
+              <span id="liveTotalBatchCost" class="text-xl font-black text-sky-300">৳ 0.00</span>
+              <span id="liveBatchSummaryText" class="text-[11px] text-sky-200 block mt-0.5">১ পিস ড্রেস</span>
+            </div>
+
+          </div>
+
+          <!-- GRAND HIGHLIGHT: PER DRESS COST -->
+          <div class="bg-gradient-to-r from-emerald-600/30 via-sky-600/30 to-indigo-600/30 border-2 border-sky-400/60 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <span class="text-xs uppercase font-extrabold tracking-wider text-sky-300">✨ ১টি ড্রেস তৈরিতে মোট খরচ (Cost Per Unit)</span>
+              <h2 id="livePerDressCostBig" class="text-3xl sm:text-4xl font-black text-white mt-1">৳ 0.00</h2>
+              <p class="text-xs text-slate-300 mt-1" id="livePerDressExplanation">কাঁচামাল + স্যালারি + অতিরিক্ত খরচ বাবদ নিখুঁত কস্টিং</p>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+              <button type="submit" id="btnSubmitProduction" class="w-full sm:w-auto bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow-xl shadow-sky-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base">
+                <i class="fa-solid fa-check-double"></i>
+                <span>প্রোডাকশন সেভ ও স্টক কর্তন করুন</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </form>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: RAW MATERIAL PURCHASE & INVENTORY (STOCKS IN) -->
+    <!-- ========================================================================= -->
+    <div id="tab-content-purchase" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Purchase Entry Form (4 Columns) -->
+        <div class="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm h-fit space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-7 h-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xs"><i class="fa-solid fa-cart-plus"></i></span>
+              কাঁচামাল ক্রয় এন্ট্রি (Stock In)
+            </h2>
+            <span class="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg font-bold">New Material</span>
+          </div>
+
+          <form id="rawPurchaseForm" onsubmit="handleRawPurchaseSubmit(event)" class="space-y-3.5 text-xs sm:text-sm">
+            
+            <!-- Material Name with Auto-Suggest -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">কাঁচামাল / কাপড়ের নাম <span class="text-rose-500">*</span></label>
+              <input type="text" id="rawName" list="rawSuggestions" required placeholder="যেমন: কটন সিল্ক, গোল্ডেন লেইস, মেটাল বোতাম" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition font-medium">
+              <datalist id="rawSuggestions"></datalist>
+            </div>
+
+            <!-- Category & Unit -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">ক্যাটাগরি <span class="text-rose-500">*</span></label>
+                <select id="rawCategory" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                  <option value="কাপড় (Fabric)">কাপড় (Fabric)</option>
+                  <option value="লেইস ও বর্ডার (Lace)">লেইস ও বর্ডার (Lace)</option>
+                  <option value="বোতাম (Buttons)">বোতাম (Buttons)</option>
+                  <option value="সুতা ও এমব্রয়ডারি (Thread)">সুতা ও এমব্রয়ডারি (Thread)</option>
+                  <option value="চেইন ও জিপার (Zipper)">চেইন ও জিপার (Zipper)</option>
+                  <option value="আস্তরণ (Lining)">আস্তরণ (Lining)</option>
+                  <option value="কারচুপি ও স্টোন (Stones)">কারচুপি ও স্টোন (Stones)</option>
+                  <option value="প্যাকেজিং (Packaging)">প্যাকেজিং (Packaging)</option>
+                  <option value="অন্যান্য (Other)">অন্যান্য (Other)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">একক (Unit) <span class="text-rose-500">*</span></label>
+                <select id="rawUnit" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                  <option value="গজ (Yds)">গজ (Yds)</option>
+                  <option value="মিটার (Mtr)">মিটার (Mtr)</option>
+                  <option value="পিস (Pcs)">পিস (Pcs)</option>
+                  <option value="রোল (Roll)">রোল (Roll)</option>
+                  <option value="ডজন (Dzn)">ডজন (Dzn)</option>
+                  <option value="কেজি (Kg)">কেজি (Kg)</option>
+                  <option value="প্যাকেট (Pkt)">প্যাকেট (Pkt)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Quantity & Unit Price / Total Price -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">পরিমাণ (Quantity) <span class="text-rose-500">*</span></label>
+                <input type="number" id="rawQty" min="0.01" step="any" required placeholder="0" oninput="calcRawPurchaseTotal()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">একক মূল্য (দর/৳) <span class="text-rose-500">*</span></label>
+                <input type="number" id="rawUnitPrice" min="0.01" step="any" required placeholder="0.00" oninput="calcRawPurchaseTotal()" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800">
+              </div>
+            </div>
+
+            <!-- Total Purchase Amount Calculated -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">মোট ক্রয় মূল্য (টাকা)</label>
+              <input type="number" id="rawTotalCost" min="0" step="any" readonly placeholder="0.00" class="w-full px-3.5 py-2.5 bg-sky-50/70 border border-sky-200 rounded-xl font-black text-sky-800">
+            </div>
+
+            <!-- Supplier / Market & Purchase Date -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">দোকান / সাপ্লায়ারের নাম</label>
+                <input type="text" id="rawSupplier" placeholder="যেমন: ইসলামপুর টেক্সটাইল" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">ক্রয়ের তারিখ</label>
+                <input type="date" id="rawDate" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium text-slate-700">
+              </div>
+            </div>
+
+            <!-- Picture Upload & Live Preview -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">কাপড় বা ভাউচারের ছবি (Picture Upload)</label>
+              <div class="flex items-center gap-3">
+                <input type="file" id="rawImageFile" accept="image/*" onchange="previewRawImage(event)" class="w-full text-xs text-slate-500 file:mr-2.5 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100 cursor-pointer">
+                <div id="rawImagePreviewContainer" class="hidden relative shrink-0">
+                  <img id="rawImagePreview" class="w-11 h-11 object-cover rounded-xl border border-sky-300 shadow-xs" src="" alt="preview">
+                  <button type="button" onclick="clearRawImage()" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] hover:bg-rose-600">&times;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="btnSaveRaw" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-sky-600/25 flex justify-center items-center gap-2 mt-2">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>কাঁচামাল সেভ ও স্টক যুক্ত করুন</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Raw Materials Stock Ledger Table (8 Columns) -->
+        <div class="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between space-y-4">
+          <div>
+            
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span class="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xs"><i class="fa-solid fa-layer-group"></i></span>
+                  কাঁচামাল ইনভেন্টরি ও অবশিষ্ট স্টক লেজার
+                </h2>
+                <p class="text-xs text-slate-400" id="rawLedgerStats">সর্বমোট ০ টি কাঁচামাল এন্ট্রি</p>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-48">
+                  <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                  <input type="text" id="rawSearch" onkeyup="filterRawMaterialsTable()" placeholder="সার্চ করুন..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:ring-1 focus:ring-sky-500 focus:outline-none">
+                </div>
+
+                <select id="rawCategoryFilter" onchange="filterRawMaterialsTable()" class="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 focus:outline-none">
+                  <option value="ALL">সব ক্যাটাগরি</option>
+                  <option value="কাপড় (Fabric)">কাপড়</option>
+                  <option value="লেইস ও বর্ডার (Lace)">লেইস</option>
+                  <option value="বোতাম (Buttons)">বোতাম</option>
+                  <option value="সুতা ও এমব্রয়ডারি (Thread)">সুতা</option>
+                  <option value="চেইন ও জিপার (Zipper)">চেইন</option>
+                  <option value="অন্যান্য (Other)">অন্যান্য</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Responsive Table Container -->
+            <div class="overflow-x-auto mt-3">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50/90 border-b border-slate-200 text-slate-700 uppercase font-semibold text-[11px]">
+                  <tr>
+                    <th class="py-3 px-3">ছবি</th>
+                    <th class="py-3 px-3">কাঁচামাল ও ক্যাটাগরি</th>
+                    <th class="py-3 px-3 text-right">ক্রয় পরিমাণ</th>
+                    <th class="py-3 px-3 text-right">একক দর</th>
+                    <th class="py-3 px-3 text-right">মোট ক্রয় (৳)</th>
+                    <th class="py-3 px-3 text-right font-bold text-emerald-700">বর্তমান অবশিষ্ট স্টক</th>
+                    <th class="py-3 px-3 text-center">স্ট্যাটাস</th>
+                    <th class="py-3 px-3 text-center">একশন</th>
+                  </tr>
+                </thead>
+                <tbody id="rawMaterialsTableBody" class="divide-y divide-slate-100 font-normal">
+                  <!-- Dynamically Rendered -->
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: DRESS CATALOG & CODE REGISTRY -->
+    <!-- ========================================================================= -->
+    <div id="tab-content-dresses" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Add New Dress Form (4 Columns) -->
+        <div class="lg:col-span-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm h-fit space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs"><i class="fa-solid fa-shirt"></i></span>
+              নতুন ড্রেস কোড ও ক্যাটালগ এন্ট্রি
+            </h2>
+            <span class="text-[11px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-lg font-bold">New Model</span>
+          </div>
+
+          <form id="dressRegistryForm" onsubmit="handleDressRegistrySubmit(event)" class="space-y-3.5 text-xs sm:text-sm">
+            
+            <!-- Dress Code / SKU -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">ড্রেস কোড / স্টাইল নাম্বার <span class="text-rose-500">*</span></label>
+              <div class="relative">
+                <input type="text" id="dressCode" required placeholder="যেমন: DR-101, ANARKALI-01, KURTI-2026" class="w-full uppercase font-mono px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-indigo-900">
+                <button type="button" onclick="generateAutoDressCode()" class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-2 py-1 rounded-lg font-bold">Auto</button>
+              </div>
+            </div>
+
+            <!-- Dress Name -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">ড্রেসের নাম / বিবরণ <span class="text-rose-500">*</span></label>
+              <input type="text" id="dressName" required placeholder="যেমন: এক্সক্লুসিভ জর্জেট গাউন, সিল্ক আনাকলি থ্রি-পিস" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+            </div>
+
+            <!-- Category & Target Selling Price -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">ক্যাটাগরি</label>
+                <select id="dressCategory" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-medium">
+                  <option value="থ্রি-পিস (Three Piece)">থ্রি-পিস</option>
+                  <option value="গাউন (Gown)">গাউন</option>
+                  <option value="কুর্তি (Kurti)">কুর্তি</option>
+                  <option value="লেহেঙ্গা (Lehenga)">লেহেঙ্গা</option>
+                  <option value="পাঞ্জাবি (Panjabi)">পাঞ্জাবি</option>
+                  <option value="ফ্রক / টপস (Frock)">ফ্রক / টপস</option>
+                  <option value="শাড়ি (Saree)">শাড়ি</option>
+                  <option value="অন্যান্য (Other)">অন্যান্য</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-bold text-slate-700 mb-1 text-[11px]">টার্গেট বিক্রয় মূল্য (৳)</label>
+                <input type="number" id="dressTargetPrice" min="0" step="any" placeholder="0.00" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-emerald-700">
+              </div>
+            </div>
+
+            <!-- Dress Image Upload -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">ড্রেসের ছবি / স্কেচ (Dress Picture)</label>
+              <div class="flex items-center gap-3">
+                <input type="file" id="dressImageFile" accept="image/*" onchange="previewDressImage(event)" class="w-full text-xs text-slate-500 file:mr-2.5 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                <div id="dressImagePreviewContainer" class="hidden relative shrink-0">
+                  <img id="dressImagePreview" class="w-11 h-11 object-cover rounded-xl border border-indigo-300 shadow-xs" src="" alt="preview">
+                  <button type="button" onclick="clearDressImage()" class="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] hover:bg-rose-600">&times;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1 text-[11px]">নোট / কাটিং স্পেসিফিকেশন</label>
+              <textarea id="dressNotes" rows="2" placeholder="ডিজাইন বা সাইজ নোট..." class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl font-medium"></textarea>
+            </div>
+
+            <button type="submit" id="btnSaveDress" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-indigo-600/25 flex justify-center items-center gap-2 mt-2">
+              <i class="fa-solid fa-plus-circle"></i>
+              <span>ড্রেস ক্যাটালগে সেভ করুন</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Dress Catalog Showcase Grid / Table (8 Columns) -->
+        <div class="lg:col-span-8 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span class="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs"><i class="fa-solid fa-tags"></i></span>
+                  নিবন্ধিত ড্রেস ক্যাটালগ ও মডেল
+                </h2>
+                <p class="text-xs text-slate-400" id="dressCatalogStats">সর্বমোট ০ টি ড্রেস মডেল নিবন্ধিত</p>
+              </div>
+
+              <div class="relative w-full sm:w-60">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <input type="text" id="dressSearch" onkeyup="filterDressCatalog()" placeholder="ড্রেস কোড বা নাম দিয়ে খুঁজুন..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+              </div>
+            </div>
+
+            <!-- Dress Cards Showcase Grid -->
+            <div id="dressCatalogGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              <!-- Dynamically Populated -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: PRODUCTION COSTING HISTORY & JOB CARDS -->
+    <!-- ========================================================================= -->
+    <div id="tab-content-history" class="tab-content hidden space-y-6">
+      <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-7 h-7 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xs"><i class="fa-solid fa-clipboard-list"></i></span>
+              সম্পন্ন প্রোডাকশন কস্টিং হিস্ট্রি ও জব কার্ড
+            </h2>
+            <p class="text-xs text-slate-400">প্রতিটি ব্যাচের কাঁচামাল ব্যবহার, কারিগর মজুরি ও প্রতি ড্রেসের নিখুঁত কস্টিং রিপোর্ট</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <div class="relative flex-1 sm:w-60">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="historySearch" onkeyup="filterHistoryTable()" placeholder="ড্রেস নাম, কোড বা ব্যাচ নং দিয়ে খুঁজুন..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:ring-1 focus:ring-purple-500 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Production History Table -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead>
-              <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                <th class="p-2.5">আইটেম</th>
-                <th class="p-2.5">স্ট্যান্ডার্ড প্রয়োজন</th>
-                <th class="p-2.5">প্রকৃত ব্যবহার (Actual)</th>
-                <th class="p-2.5">ওয়েস্টেজ</th>
-                <th class="p-2.5 text-right">মোট খরচ</th>
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50/90 border-b border-slate-200 text-slate-700 uppercase font-semibold text-[11px]">
+              <tr>
+                <th class="py-3 px-3">ব্যাচ নং ও তারিখ</th>
+                <th class="py-3 px-3">ড্রেসের বিবরণ</th>
+                <th class="py-3 px-3 text-right">পরিমাণ (Pcs)</th>
+                <th class="py-3 px-3 text-right text-emerald-700">কাঁচামাল খরচ</th>
+                <th class="py-3 px-3 text-right text-purple-700">কারিগর মজুরি</th>
+                <th class="py-3 px-3 text-right font-bold text-slate-900">মোট ব্যাচ খরচ (৳)</th>
+                <th class="py-3 px-3 text-right font-black text-sky-700 text-sm">১টি ড্রেসের খরচ</th>
+                <th class="py-3 px-3 text-center">একশন</th>
               </tr>
             </thead>
-            <tbody id="bomTableBody" class="divide-y divide-slate-100">
-              <!-- JS Generated Rows -->
+            <tbody id="productionHistoryTableBody" class="divide-y divide-slate-100 font-normal">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 5: VISUAL ANALYTICS & CHARTS -->
+    <!-- ========================================================================= -->
+    <div id="tab-content-analytics" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Cost Split Doughnut Chart -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-sky-600"></i> গড় খরচ বিভাজন (Fabric vs Labor vs Overhead)
+            </h3>
+            <span class="text-xs text-slate-400">Expense Split</span>
+          </div>
+          <div class="h-64 sm:h-72 flex items-center justify-center">
+            <canvas id="costSplitChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Top Produced Styles Bar Chart -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-chart-column text-purple-600"></i> সর্বোচ্চ উৎপাদিত ড্রেস মডেল (Top Styles)
+            </h3>
+            <span class="text-xs text-slate-400">Production Volume</span>
+          </div>
+          <div class="h-64 sm:h-72 flex items-center justify-center">
+            <canvas id="topDressesChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= DETAILED PRODUCTION COST BREAKDOWN MODAL ================= -->
+  <div id="costDetailsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="relative bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl space-y-4 p-6">
+      
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <img id="modalDressImg" src="" alt="Dress" class="w-12 h-12 object-cover rounded-xl border border-slate-200">
+          <div>
+            <h3 id="modalDressName" class="text-base font-bold text-slate-900">--</h3>
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+              <span id="modalBatchNo" class="font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded">--</span>
+              <span id="modalDate">--</span>
+            </div>
+          </div>
+        </div>
+        <button onclick="closeCostDetailsModal()" class="text-slate-400 hover:text-slate-700 text-xl w-8 h-8 flex items-center justify-center rounded-xl hover:bg-slate-100">&times;</button>
+      </div>
+
+      <!-- Unit Cost Card Banner -->
+      <div class="bg-gradient-to-r from-sky-600 to-indigo-700 text-white p-4 rounded-2xl flex items-center justify-between">
+        <div>
+          <span class="text-xs uppercase font-extrabold text-sky-200">১টি ড্রেস তৈরিতে মোট উৎপাদন খরচ</span>
+          <h2 id="modalUnitCost" class="text-2xl sm:text-3xl font-black mt-0.5">৳ 0.00</h2>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-sky-200">মোট তৈরি পরিমাণ</span>
+          <h4 id="modalBatchQty" class="text-lg font-extrabold">0 Pcs</h4>
+        </div>
+      </div>
+
+      <!-- Itemized Materials Breakdown Table -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold uppercase text-slate-600 flex items-center gap-1.5">
+          <i class="fa-solid fa-boxes-stacked text-emerald-600"></i> ব্যবহৃত কাঁচামাল ও কাপড়ের ব্রেকডাউন:
+        </h4>
+        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="p-2.5">কাঁচামালের নাম</th>
+                <th class="p-2.5 text-right">ব্যবহৃত পরিমাণ</th>
+                <th class="p-2.5 text-right">দর (৳)</th>
+                <th class="p-2.5 text-right">মোট টাকা</th>
+                <th class="p-2.5 text-right font-bold text-emerald-700">১টি ড্রেসে খরচ</th>
+              </tr>
+            </thead>
+            <tbody id="modalMaterialBreakdownBody" class="divide-y divide-slate-100">
+              <!-- Injected by JS -->
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Live Cost Distribution (1 Col) -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4 flex flex-col justify-between">
-        <div>
-          <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider border-b pb-3 flex items-center gap-2">
-            <i class="fa-solid fa-calculator text-emerald-600"></i> ২. প্রতি পিস খরচ বিভাজন
-          </h2>
-
-          <div class="space-y-3 pt-3 text-xs">
-            <div class="flex justify-between items-center py-1.5 border-b border-dashed">
-              <span class="text-slate-600">মেটেরিয়াল কস্ট (Fabric + Trims):</span>
-              <span id="lblUnitMat" class="font-bold text-slate-800">৳ 0.00</span>
-            </div>
-            <div class="flex justify-between items-center py-1.5 border-b border-dashed">
-              <span class="text-slate-600">লেবার কস্ট (Salary Allocated):</span>
-              <span id="lblUnitLabour" class="font-bold text-slate-800">৳ 0.00</span>
-            </div>
-            <div class="flex justify-between items-center py-1.5 border-b border-dashed">
-              <span class="text-slate-600">ওভারহেড কস্ট (Factory Rent & Util):</span>
-              <span id="lblUnitOverhead" class="font-bold text-slate-800">৳ 0.00</span>
-            </div>
-            <div class="flex justify-between items-center py-2 bg-slate-50 px-2 rounded-lg text-sm font-extrabold text-slate-900 border">
-              <span>প্রতি পিস মোট খরচ:</span>
-              <span id="lblGrandUnitCost" class="text-emerald-600">৳ 0.00</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="pt-4 border-t space-y-3">
-          <div class="grid grid-cols-2 gap-2 text-center text-xs">
-            <div class="bg-slate-100 p-2.5 rounded-lg">
-              <span class="block text-slate-500 text-[10px]">মোট প্রোডাকশন সময়</span>
-              <span id="lblLeadDays" class="text-base font-bold text-blue-600">0 দিন</span>
-            </div>
-            <div class="bg-slate-100 p-2.5 rounded-lg">
-              <span class="block text-slate-500 text-[10px]">লটের সর্বমোট বাজেট</span>
-              <span id="lblLotTotal" class="text-base font-bold text-slate-800">৳ 0</span>
-            </div>
-          </div>
-
-          <button id="btnSubmit" onclick="submitToSheet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow flex items-center justify-center gap-2 text-xs tracking-wider uppercase transition">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Google Sheet-এ সিঙ্ক করুন
-          </button>
+      <!-- Labor Breakdown Table -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold uppercase text-slate-600 flex items-center gap-1.5">
+          <i class="fa-solid fa-user-gear text-purple-600"></i> কারিগর মজুরি ও স্যালারি ব্রেকডাউন:
+        </h4>
+        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="p-2.5">কারিগরের নাম / কাজ</th>
+                <th class="p-2.5">কাজের ধরণ / দিন</th>
+                <th class="p-2.5 text-right">মজুরি রেট</th>
+                <th class="p-2.5 text-right">মোট মজুরি</th>
+                <th class="p-2.5 text-right font-bold text-purple-700">১টি ড্রেসে মজুরি</th>
+              </tr>
+            </thead>
+            <tbody id="modalLaborBreakdownBody" class="divide-y divide-slate-100">
+              <!-- Injected by JS -->
+            </tbody>
+          </table>
         </div>
       </div>
 
-    </div>
+      <!-- Suggested Selling Price & Profit Estimator -->
+      <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-amber-900">প্রস্তাবিত বিক্রয় মূল্য ও লাভ অনুমান:</span>
+          <span id="modalProfitMarginSummary" class="font-bold text-amber-800">--</span>
+        </div>
+      </div>
 
+      <!-- Modal Actions -->
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="printModalJobCard()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl font-bold flex items-center gap-2">
+          <i class="fa-solid fa-print"></i> কস্টিং জব কার্ড প্রিন্ট
+        </button>
+        <button type="button" onclick="closeCostDetailsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs px-4 py-2.5 rounded-xl font-bold">
+          বন্ধ করুন
+        </button>
+      </div>
+
+    </div>
   </div>
 
+  <!-- ================= IMAGE LIGHTBOX MODAL ================= -->
+  <div id="imageLightboxModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="relative bg-white p-3 rounded-2xl max-w-lg w-full shadow-2xl space-y-3">
+      <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+        <h4 id="lightboxTitle" class="text-xs font-bold text-slate-800 truncate">ছবির ভিউ</h4>
+        <button onclick="closeImageLightbox()" class="text-slate-400 hover:text-slate-700 text-lg w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100">&times;</button>
+      </div>
+      <div class="max-h-[70vh] overflow-hidden rounded-xl bg-slate-100 flex items-center justify-center">
+        <img id="lightboxImgSrc" src="" alt="Full Preview" class="max-h-[68vh] w-auto object-contain">
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PRINTABLE JOB CARD / COST SHEET (PRINT ONLY) ================= -->
+  <div id="printableJobCard" class="hidden">
+    <div style="border: 2px solid #0f172a; padding: 24px; border-radius: 12px; max-width: 750px; margin: 0 auto; font-family: sans-serif; color: #0f172a;">
+      
+      <!-- Print Header -->
+      <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;">
+        <h1 style="font-size: 22px; font-weight: bold; margin: 0; text-transform: uppercase;">GARMENT PRODUCTION COST SHEET</h1>
+        <p style="font-size: 12px; color: #475569; margin: 4px 0 0 0;">পোশাক উৎপাদন ও নিখুঁত কস্টিং বিশ্লেষণ বিবরণী</p>
+      </div>
+
+      <div id="printableJobCardContent">
+        <!-- Injected via JS -->
+      </div>
+
+      <div style="margin-top: 30px; padding-top: 16px; border-top: 1px dashed #94a3b8; display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
+        <span>কাটিং ও প্রোডাকশন ইনচার্জ: _______________</span>
+        <span>হিসাবরক্ষক স্বাক্ষর: _______________</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= SYSTEM CORE JAVASCRIPT ================= -->
   <script>
-    // আপনার Apps Script Web App URL দিন
-    const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+    // Global Storage & State
+    const STORAGE_KEY_RAW = 'garment_erp_raw_materials_v3';
+    const STORAGE_KEY_DRESS = 'garment_erp_dress_catalog_v3';
+    const STORAGE_KEY_PROD = 'garment_erp_production_batches_v3';
 
-    // ডিফল্ট ডেটাসেট (Sheets কানেক্ট না হলেও যেন টেস্ট করা যায়)
-    let state = {
-      bom: [
-        { Item_Name: "Main Fabric", Qty_Per_Pc: 2.5, Unit: "Yard", Unit_Cost: 180 },
-        { Item_Name: "Lining", Qty_Per_Pc: 1.0, Unit: "Yard", Unit_Cost: 100 },
-        { Item_Name: "Lace", Qty_Per_Pc: 2.0, Unit: "Meter", Unit_Cost: 30 },
-        { Item_Name: "Button", Qty_Per_Pc: 6, Unit: "Pcs", Unit_Cost: 5 },
-        { Item_Name: "Packaging/Trims", Qty_Per_Pc: 1, Unit: "Set", Unit_Cost: 20 }
-      ],
-      salaries: [
-        { Dept_Name: "Cutting", Cost_Per_Piece: 25 },
-        { Dept_Name: "Sewing", Cost_Per_Piece: 125 },
-        { Dept_Name: "Finishing/QC", Cost_Per_Piece: 70 }
-      ],
-      overheads: [
-        { Expense_Type: "Factory Rent & Util", Overhead_Per_Piece: 30 }
-      ]
-    };
+    let rawMaterials = [];
+    let dressCatalog = [];
+    let productionBatches = [];
 
-    let calculatedPayload = {};
+    let currentModalBatch = null;
+    let costSplitChartInstance = null;
+    let topDressesChartInstance = null;
 
-    window.onload = function() {
-      // ডিফল্ট ডেট সেট
+    // Initialize System
+    document.addEventListener('DOMContentLoaded', () => {
+      initDefaultDates();
+      loadAllData();
+      renderAllViews();
+      
+      // Initialize dynamic form rows
+      addMaterialRow();
+      addLaborRow();
+    });
+
+    function initDefaultDates() {
       const today = new Date().toISOString().split('T')[0];
-      document.getElementById('dtStart').value = today;
-      document.getElementById('dtReady').value = today;
-      calcLeadDays();
-      renderBOMTable();
-      recalcEverything();
-      fetchServerConfig();
-    };
+      const pDate = document.getElementById('prodDate');
+      const rDate = document.getElementById('rawDate');
+      if (pDate) pDate.value = today;
+      if (rDate) rDate.value = today;
+    }
 
-    function fetchServerConfig() {
-      if (APPS_SCRIPT_URL.includes("YOUR_APPS_SCRIPT")) {
-        document.getElementById('syncStatus').innerText = "অফলাইন মোড (লোকাল ডেটা)";
+    // -----------------------------------------------------------------
+    // 1. DATA PERSISTENCE & LOADING
+    // -----------------------------------------------------------------
+    function loadAllData() {
+      try {
+        const rawStr = localStorage.getItem(STORAGE_KEY_RAW);
+        const dressStr = localStorage.getItem(STORAGE_KEY_DRESS);
+        const prodStr = localStorage.getItem(STORAGE_KEY_PROD);
+
+        rawMaterials = rawStr ? JSON.parse(rawStr) : [];
+        dressCatalog = dressStr ? JSON.parse(dressStr) : [];
+        productionBatches = prodStr ? JSON.parse(prodStr) : [];
+
+        // If completely empty, offer to load demo data or populate defaults
+        if (rawMaterials.length === 0 && dressCatalog.length === 0) {
+          populateInitialSampleData();
+        }
+      } catch (err) {
+        console.error("Error loading data from localStorage:", err);
+      }
+    }
+
+    function saveAllData() {
+      try {
+        localStorage.setItem(STORAGE_KEY_RAW, JSON.stringify(rawMaterials));
+        localStorage.setItem(STORAGE_KEY_DRESS, JSON.stringify(dressCatalog));
+        localStorage.setItem(STORAGE_KEY_PROD, JSON.stringify(productionBatches));
+      } catch (err) {
+        console.error("Error saving data:", err);
+      }
+    }
+
+    function populateInitialSampleData() {
+      const today = new Date().toISOString().split('T')[0];
+
+      rawMaterials = [
+        { id: 'raw-1', name: 'ডিজিটাল প্রিন্ট সিল্ক কাপড়', category: 'কাপড় (Fabric)', unit: 'গজ (Yds)', qtyPurchased: 100, qtyCurrent: 75, unitPrice: 280, totalCost: 28000, supplier: 'ইসলামপুর টেক্সটাইল', purchaseDate: today, image: '' },
+        { id: 'raw-2', name: 'বাটার সিল্ক আস্তরণ/ইনার', category: 'আস্তরণ (Lining)', unit: 'গজ (Yds)', qtyPurchased: 60, qtyCurrent: 45, unitPrice: 90, totalCost: 5400, supplier: 'নিউ মার্কেট ফ্যাব্রিকস', purchaseDate: today, image: '' },
+        { id: 'raw-3', name: 'গোল্ডেন জরি লেইস', category: 'লেইস ও বর্ডার (Lace)', unit: 'গজ (Yds)', qtyPurchased: 150, qtyCurrent: 120, unitPrice: 35, totalCost: 5250, supplier: 'চাঁদনী চক লেইস হাউজ', purchaseDate: today, image: '' },
+        { id: 'raw-4', name: 'মেটাল অ্যান্টিক বোতাম', category: 'বোতাম (Buttons)', unit: 'পিস (Pcs)', qtyPurchased: 500, qtyCurrent: 440, unitPrice: 4, totalCost: 2000, supplier: 'চকবাজার এক্সেসরিজ', purchaseDate: today, image: '' },
+        { id: 'raw-5', name: 'প্রিমিয়াম কোয়ালিটি সুতা (DMC)', category: 'সুতা ও এমব্রয়ডারি (Thread)', unit: 'পিস (Pcs)', qtyPurchased: 30, qtyCurrent: 26, unitPrice: 65, totalCost: 1950, supplier: 'চকবাজার এক্সেসরিজ', purchaseDate: today, image: '' }
+      ];
+
+      dressCatalog = [
+        { id: 'dress-1', code: 'ANARKALI-01', name: 'ডিজিটাল প্রিন্ট সিল্ক আনাকলি গাউন', category: 'গাউন (Gown)', targetSalePrice: 2800, image: '', notes: '৩ পার্টের এক্সক্লুসিভ গাউন' },
+        { id: 'dress-2', code: 'KURTI-LUX-22', name: 'প্রিমিয়াম এমব্রয়ডারি ডিজাইনার কুর্তি', category: 'কুর্তি (Kurti)', targetSalePrice: 1500, image: '', notes: 'হাতের কাজের ফিনিশিং' }
+      ];
+
+      productionBatches = [
+        {
+          id: 'prod-1',
+          batchNo: 'PB-20260901-001',
+          date: today,
+          dressId: 'dress-1',
+          dressCode: 'ANARKALI-01',
+          dressName: 'ডিজিটাল প্রিন্ট সিল্ক আনাকলি গাউন',
+          dressImage: '',
+          batchQty: 10,
+          materialsUsed: [
+            { rawMaterialId: 'raw-1', name: 'ডিজিটাল প্রিন্ট সিল্ক কাপড়', unit: 'গজ (Yds)', unitPrice: 280, qtyUsed: 25, totalCost: 7000, qtyPerPiece: 2.5, costPerPiece: 700 },
+            { rawMaterialId: 'raw-2', name: 'বাটার সিল্ক আস্তরণ/ইনার', unit: 'গজ (Yds)', unitPrice: 90, qtyUsed: 15, totalCost: 1350, qtyPerPiece: 1.5, costPerPiece: 135 },
+            { rawMaterialId: 'raw-3', name: 'গোল্ডেন জরি লেইস', unit: 'গজ (Yds)', unitPrice: 35, qtyUsed: 30, totalCost: 1050, qtyPerPiece: 3.0, costPerPiece: 105 },
+            { rawMaterialId: 'raw-4', name: 'মেটাল অ্যান্টিক বোতাম', unit: 'পিস (Pcs)', unitPrice: 4, qtyUsed: 60, totalCost: 240, qtyPerPiece: 6.0, costPerPiece: 24 }
+          ],
+          laborCosts: [
+            { workerName: 'কাটিং মাস্টার রহিম', wageType: 'DAYS', daysWorked: 1.5, dailyRate: 700, totalLaborCost: 1050, laborCostPerPiece: 105 },
+            { workerName: 'সেলাই কারিগর করিম', wageType: 'PIECE', pieceRate: 150, totalPcs: 10, totalLaborCost: 1500, laborCostPerPiece: 150 }
+          ],
+          overheadCosts: [
+            { name: 'ইলেকট্রিসিটি ও আয়রন', amount: 300 },
+            { name: 'প্যাকেজিং বক্স', amount: 200 }
+          ],
+          totalMaterialCost: 9640,
+          totalLaborCost: 2550,
+          totalOverheadCost: 500,
+          totalBatchCost: 12690,
+          costPerDress: 1269,
+          suggestedSellingPrice: 2800,
+          notes: '১০ পিসের ফার্স্ট লট সফলভাবে সম্পন্ন'
+        }
+      ];
+
+      saveAllData();
+    }
+
+    // -----------------------------------------------------------------
+    // 2. REFRESH & RENDER ALL VIEWS
+    // -----------------------------------------------------------------
+    function refreshAllViews(isManual = false) {
+      updateKpis();
+      populateDressDropdown();
+      renderRawMaterialsTable();
+      renderDressCatalog();
+      renderProductionHistory();
+      renderAnalyticsCharts();
+
+      if (isManual) {
+        Swal.fire({
+          icon: 'success',
+          title: 'সকল ডাটা রিফ্রেশ হয়েছে!',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 1500
+        });
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 3. KPI CALCULATIONS
+    // -----------------------------------------------------------------
+    function updateKpis() {
+      let totalPurchaseVal = 0;
+      let currentRawVal = 0;
+      let totalBatches = productionBatches.length;
+      let totalDressesProduced = 0;
+      let totalProductionExpense = 0;
+
+      rawMaterials.forEach(item => {
+        totalPurchaseVal += (parseFloat(item.totalCost) || 0);
+        currentRawVal += ((parseFloat(item.qtyCurrent) || 0) * (parseFloat(item.unitPrice) || 0));
+      });
+
+      productionBatches.forEach(b => {
+        totalDressesProduced += (parseInt(b.batchQty) || 0);
+        totalProductionExpense += (parseFloat(b.totalBatchCost) || 0);
+      });
+
+      const avgDressCost = totalDressesProduced > 0 ? Math.round(totalProductionExpense / totalDressesProduced) : 0;
+
+      document.getElementById('kpi-total-purchase').innerText = `৳ ${Math.round(totalPurchaseVal).toLocaleString()}`;
+      document.getElementById('kpi-purchase-items-count').innerText = `${rawMaterials.length} টি কাঁচামাল আইটেম`;
+
+      document.getElementById('kpi-raw-stock-val').innerText = `৳ ${Math.round(currentRawVal).toLocaleString()}`;
+      document.getElementById('kpi-raw-stock-count').innerText = `${rawMaterials.reduce((acc, i) => acc + (parseFloat(i.qtyCurrent) || 0), 0).toFixed(1)} মোট ইউনিট মজুত`;
+
+      document.getElementById('kpi-total-batches').innerText = `${totalBatches} ব্যাচ`;
+      document.getElementById('kpi-total-pcs-produced').innerText = `মোট ${totalDressesProduced.toLocaleString()} পিস তৈরি`;
+
+      document.getElementById('kpi-total-prod-cost').innerText = `৳ ${Math.round(totalProductionExpense).toLocaleString()}`;
+      document.getElementById('kpi-avg-dress-cost').innerText = `৳ ${avgDressCost.toLocaleString()}`;
+      document.getElementById('kpi-dress-models-count').innerText = `${dressCatalog.length} টি ড্রেস ডিজাইন নিবন্ধিত`;
+    }
+
+    // -----------------------------------------------------------------
+    // 4. DRESS DROPDOWN & SELECTION HANDLERS
+    // -----------------------------------------------------------------
+    function populateDressDropdown() {
+      const select = document.getElementById('prodDressSelect');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">-- ড্রেস নির্বাচন করুন --</option>';
+
+      dressCatalog.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.innerText = `[${d.code}] ${d.name} (${d.category || 'ড্রেস'})`;
+        select.appendChild(opt);
+      });
+
+      if (currentVal) select.value = currentVal;
+    }
+
+    function handleDressSelectChange() {
+      const dressId = document.getElementById('prodDressSelect').value;
+      const strip = document.getElementById('selectedDressPreviewStrip');
+
+      if (!dressId) {
+        strip.classList.add('hidden');
+        recalculateLiveCosting();
         return;
       }
-      fetch(`${APPS_SCRIPT_URL}?action=getInitialConfig`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.bom && data.bom.length) state.bom = data.bom;
-          if (data.salaries && data.salaries.length) state.salaries = data.salaries;
-          if (data.overheads && data.overheads.length) state.overheads = data.overheads;
-          document.getElementById('syncStatus').innerText = "অনলাইন (শিট সংযুক্ত)";
-          renderBOMTable();
-          recalcEverything();
-        })
-        .catch(err => {
-          document.getElementById('syncStatus').innerText = "অফলাইন ফলব্যাক মোড";
-        });
-    }
 
-    function calcLeadDays() {
-      const d1 = new Date(document.getElementById('dtStart').value);
-      const d2 = new Date(document.getElementById('dtReady').value);
-      let days = 1;
-      if (!isNaN(d1) && !isNaN(d2) && d2 >= d1) {
-        days = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+      const dress = dressCatalog.find(d => d.id === dressId);
+      if (dress) {
+        document.getElementById('stripDressName').innerText = dress.name;
+        document.getElementById('stripDressCode').innerText = dress.code;
+        document.getElementById('stripDressCategory').innerText = dress.category || 'জেনারেল';
+        document.getElementById('stripTargetPrice').innerText = `৳ ${(parseFloat(dress.targetSalePrice) || 0).toLocaleString()}`;
+        
+        const imgEl = document.getElementById('stripDressImg');
+        imgEl.src = dress.image || 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=100&auto=format&fit=crop&q=60';
+        strip.classList.remove('hidden');
       }
-      document.getElementById('lblLeadDays').innerText = `${days} দিন`;
-      return days;
+
+      recalculateLiveCosting();
     }
 
-    function renderBOMTable() {
-      const tbody = document.getElementById('bomTableBody');
-      tbody.innerHTML = "";
-      const orderQty = parseFloat(document.getElementById('inpQty').value) || 0;
+    // -----------------------------------------------------------------
+    // 5. DYNAMIC MATERIAL ROWS (PRODUCTION STEP 2)
+    // -----------------------------------------------------------------
+    function addMaterialRow() {
+      const container = document.getElementById('materialRowsContainer');
+      const rowId = 'mat-row-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
 
-      state.bom.forEach((item, idx) => {
-        const standardReq = item.Qty_Per_Pc * orderQty;
-        tbody.innerHTML += `
-          <tr>
-            <td class="p-2.5 font-medium">${item.Item_Name}</td>
-            <td class="p-2.5">${standardReq.toFixed(2)} ${item.Unit}</td>
-            <td class="p-2.5">
-              <input type="number" step="0.1" id="actual_${idx}" value="${standardReq.toFixed(2)}" 
-                class="w-24 bg-slate-50 border rounded p-1 text-xs outline-none" 
-                oninput="recalcRow(${idx}, ${standardReq}, ${item.Unit_Cost})">
-            </td>
-            <td class="p-2.5 text-amber-600 font-semibold" id="wastage_${idx}">0 ${item.Unit}</td>
-            <td class="p-2.5 text-right font-bold text-slate-800" id="cost_${idx}">৳ ${(standardReq * item.Unit_Cost).toFixed(2)}</td>
+      const div = document.createElement('div');
+      div.id = rowId;
+      div.className = "p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center hover:border-emerald-300 transition";
+
+      // Build options from rawMaterials
+      let optionsHtml = '<option value="">-- কাঁচামাল সিলেক্ট করুন --</option>';
+      rawMaterials.forEach(rm => {
+        optionsHtml += `<option value="${rm.id}" data-unit="${rm.unit}" data-price="${rm.unitPrice}" data-stock="${rm.qtyCurrent}">${rm.name} [স্টক: ${rm.qtyCurrent} ${rm.unit} | দর: ৳${rm.unitPrice}]</option>`;
+      });
+
+      div.innerHTML = `
+        <div class="sm:col-span-5">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px]">কাঁচামাল নির্বাচন <span class="text-rose-500">*</span></label>
+          <select required onchange="handleMaterialChange('${rowId}')" class="mat-select w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-semibold text-slate-800 text-xs">
+            ${optionsHtml}
+          </select>
+        </div>
+
+        <div class="sm:col-span-3">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px]">ব্যবহৃত পরিমাণ <span class="text-rose-500">*</span></label>
+          <div class="relative">
+            <input type="number" min="0.01" step="any" required placeholder="0" oninput="handleMaterialQtyChange('${rowId}')" class="mat-qty w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-xs">
+            <span class="mat-unit-badge absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">Unit</span>
+          </div>
+        </div>
+
+        <div class="sm:col-span-3">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px]">মোট মেটেরিয়াল খরচ (৳)</label>
+          <input type="number" readonly placeholder="0.00" class="mat-cost w-full px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl font-black text-emerald-800 text-xs">
+        </div>
+
+        <div class="sm:col-span-1 flex justify-end sm:justify-center pt-2 sm:pt-4">
+          <button type="button" onclick="removeDynamicRow('${rowId}')" title="আইটেম বাদ দিন" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition flex items-center justify-center text-xs">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    }
+
+    function handleMaterialChange(rowId) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+
+      const select = row.querySelector('.mat-select');
+      const opt = select.options[select.selectedIndex];
+      const unit = opt ? opt.getAttribute('data-unit') || 'Unit' : 'Unit';
+
+      row.querySelector('.mat-unit-badge').innerText = unit;
+      handleMaterialQtyChange(rowId);
+    }
+
+    function handleMaterialQtyChange(rowId) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+
+      const select = row.querySelector('.mat-select');
+      const opt = select.options[select.selectedIndex];
+      const unitPrice = opt ? parseFloat(opt.getAttribute('data-price')) || 0 : 0;
+      const stock = opt ? parseFloat(opt.getAttribute('data-stock')) || 0 : 0;
+      const qtyInput = row.querySelector('.mat-qty');
+      const qty = parseFloat(qtyInput.value) || 0;
+
+      // Check stock warning
+      if (qty > stock) {
+        qtyInput.classList.add('border-rose-400', 'bg-rose-50');
+      } else {
+        qtyInput.classList.remove('border-rose-400', 'bg-rose-50');
+      }
+
+      const totalCost = qty * unitPrice;
+      row.querySelector('.mat-cost').value = totalCost.toFixed(2);
+
+      recalculateLiveCosting();
+    }
+
+    // -----------------------------------------------------------------
+    // 6. DYNAMIC LABOR ROWS (PRODUCTION STEP 3)
+    // -----------------------------------------------------------------
+    function addLaborRow() {
+      const container = document.getElementById('laborRowsContainer');
+      const rowId = 'labor-row-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+
+      const div = document.createElement('div');
+      div.id = rowId;
+      div.className = "p-3.5 bg-slate-50 border border-slate-200/90 rounded-2xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center hover:border-purple-300 transition";
+
+      div.innerHTML = `
+        <div class="sm:col-span-4">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px]">কারিগরের নাম / কাজ <span class="text-rose-500">*</span></label>
+          <input type="text" required placeholder="যেমন: কাটিং মাস্টার, সেলাই কারিগর" class="labor-name w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-semibold text-slate-800 text-xs">
+        </div>
+
+        <div class="sm:col-span-3">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px]">মজুরির ধরণ</label>
+          <select onchange="handleLaborTypeChange('${rowId}')" class="labor-type w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-medium text-xs">
+            <option value="DAYS">দিন ভিত্তিক (Days × Rate)</option>
+            <option value="PIECE">পিস ভিত্তিক (Pcs × Rate)</option>
+            <option value="FIXED">চুক্তিভিত্তিক / ফিক্সড (Fixed)</option>
+          </select>
+        </div>
+
+        <div class="sm:col-span-2 labor-param-container">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px] labor-param-label">কয় দিন কাজ?</label>
+          <input type="number" min="0.1" step="any" value="1" placeholder="১ দিন" oninput="handleLaborCalc('${rowId}')" class="labor-param-input w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-xs">
+        </div>
+
+        <div class="sm:col-span-2">
+          <label class="block font-bold text-slate-600 mb-1 text-[11px] labor-rate-label">দৈনিক মজুরি (৳)</label>
+          <input type="number" min="0" step="any" placeholder="0.00" oninput="handleLaborCalc('${rowId}')" class="labor-rate-input w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 text-xs">
+        </div>
+
+        <div class="sm:col-span-1 flex justify-end sm:justify-center pt-2 sm:pt-4">
+          <button type="button" onclick="removeDynamicRow('${rowId}')" title="আইটেম বাদ দিন" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition flex items-center justify-center text-xs">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    }
+
+    function handleLaborTypeChange(rowId) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+
+      const type = row.querySelector('.labor-type').value;
+      const paramLabel = row.querySelector('.labor-param-label');
+      const rateLabel = row.querySelector('.labor-rate-label');
+      const paramInput = row.querySelector('.labor-param-input');
+
+      if (type === 'DAYS') {
+        paramLabel.innerText = 'কয় দিন কাজ?';
+        paramInput.placeholder = '১ দিন';
+        paramInput.disabled = false;
+        paramInput.parentElement.classList.remove('opacity-40');
+        rateLabel.innerText = 'দৈনিক মজুরি (৳)';
+      } else if (type === 'PIECE') {
+        paramLabel.innerText = 'মোট পিস সংখ্যা';
+        paramInput.value = document.getElementById('prodBatchQty').value || 1;
+        paramInput.disabled = false;
+        paramInput.parentElement.classList.remove('opacity-40');
+        rateLabel.innerText = 'প্রতি পিস মজুরি (৳)';
+      } else if (type === 'FIXED') {
+        paramLabel.innerText = 'ফিক্সড পেমেন্ট';
+        paramInput.value = 1;
+        paramInput.disabled = true;
+        paramInput.parentElement.classList.add('opacity-40');
+        rateLabel.innerText = 'মোট চুক্তি মজুরি (৳)';
+      }
+
+      handleLaborCalc(rowId);
+    }
+
+    function handleLaborCalc(rowId) {
+      recalculateLiveCosting();
+    }
+
+    function removeDynamicRow(rowId) {
+      const el = document.getElementById(rowId);
+      if (el) {
+        el.remove();
+        recalculateLiveCosting();
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // 7. LIVE COSTING RECALCULATION & HIGHLIGHTS
+    // -----------------------------------------------------------------
+    function recalculateLiveCosting() {
+      const batchQty = parseInt(document.getElementById('prodBatchQty').value) || 1;
+
+      // 1. Material Costs Sum
+      let totalMaterial = 0;
+      document.querySelectorAll('#materialRowsContainer .mat-cost').forEach(input => {
+        totalMaterial += parseFloat(input.value) || 0;
+      });
+      document.getElementById('materialSubtotalDisplay').innerText = `৳ ${totalMaterial.toFixed(2)}`;
+      document.getElementById('liveMaterialCost').innerText = `৳ ${totalMaterial.toFixed(2)}`;
+      document.getElementById('liveMaterialPerPc').innerText = `৳ ${(totalMaterial / batchQty).toFixed(2)} / pc`;
+
+      // 2. Labor Costs Sum
+      let totalLabor = 0;
+      document.querySelectorAll('#laborRowsContainer > div').forEach(row => {
+        const type = row.querySelector('.labor-type').value;
+        const paramVal = parseFloat(row.querySelector('.labor-param-input').value) || 0;
+        const rateVal = parseFloat(row.querySelector('.labor-rate-input').value) || 0;
+
+        let rowLabor = 0;
+        if (type === 'DAYS') rowLabor = paramVal * rateVal;
+        else if (type === 'PIECE') rowLabor = paramVal * rateVal;
+        else if (type === 'FIXED') rowLabor = rateVal;
+
+        totalLabor += rowLabor;
+      });
+      document.getElementById('laborSubtotalDisplay').innerText = `৳ ${totalLabor.toFixed(2)}`;
+      document.getElementById('liveLaborCost').innerText = `৳ ${totalLabor.toFixed(2)}`;
+      document.getElementById('liveLaborPerPc').innerText = `৳ ${(totalLabor / batchQty).toFixed(2)} / pc`;
+
+      // 3. Overhead Costs Sum
+      const elec = parseFloat(document.getElementById('overheadElectricity').value) || 0;
+      const pkg = parseFloat(document.getElementById('overheadPackaging').value) || 0;
+      const misc = parseFloat(document.getElementById('overheadMisc').value) || 0;
+      const totalOverhead = elec + pkg + misc;
+
+      document.getElementById('liveOverheadCost').innerText = `৳ ${totalOverhead.toFixed(2)}`;
+      document.getElementById('liveOverheadPerPc').innerText = `৳ ${(totalOverhead / batchQty).toFixed(2)} / pc`;
+
+      // 4. Grand Total & Cost Per Dress
+      const grandTotal = totalMaterial + totalLabor + totalOverhead;
+      const perDressCost = batchQty > 0 ? (grandTotal / batchQty) : 0;
+
+      document.getElementById('liveTotalBatchCost').innerText = `৳ ${grandTotal.toFixed(2)}`;
+      document.getElementById('liveBatchSummaryText').innerText = `${batchQty} পিস ড্রেস প্রোডাকশন`;
+      document.getElementById('livePerDressCostBig').innerText = `৳ ${perDressCost.toFixed(2)}`;
+      document.getElementById('livePerDressExplanation').innerText = `কাঁচামাল (৳ ${(totalMaterial / batchQty).toFixed(1)}) + স্যালারি (৳ ${(totalLabor / batchQty).toFixed(1)}) + ওভারহেড (৳ ${(totalOverhead / batchQty).toFixed(1)}) = প্রতি ড্রেস খরচ`;
+    }
+
+    // -----------------------------------------------------------------
+    // 8. PRODUCTION FORM SUBMISSION & AUTOMATIC STOCK DEDUCTION
+    // -----------------------------------------------------------------
+    function handleProductionSubmit(e) {
+      e.preventDefault();
+
+      const dressId = document.getElementById('prodDressSelect').value;
+      if (!dressId) {
+        Swal.fire('ড্রেস নির্বাচন করুন', 'অনুগ্রহ করে প্রথমে কোন ড্রেস তৈরি হচ্ছে তা নির্বাচন করুন।', 'warning');
+        return;
+      }
+
+      const dress = dressCatalog.find(d => d.id === dressId);
+      if (!dress) {
+        Swal.fire('ত্রুটি', 'নির্বাচিত ড্রেসটি ক্যাটালগে পাওয়া যায়নি।', 'error');
+        return;
+      }
+
+      const batchQty = parseInt(document.getElementById('prodBatchQty').value) || 1;
+      const prodDate = document.getElementById('prodDate').value || new Date().toISOString().split('T')[0];
+
+      // Collect Materials
+      const materialsUsed = [];
+      let hasInsufficientStock = false;
+      let insufficientMessage = '';
+
+      const matRows = document.querySelectorAll('#materialRowsContainer > div');
+      if (matRows.length === 0) {
+        Swal.fire('কাঁচামাল যোগ করুন', 'কমপক্ষে একটি কাঁচামাল যোগ করতে হবে।', 'warning');
+        return;
+      }
+
+      matRows.forEach(row => {
+        const select = row.querySelector('.mat-select');
+        const rmId = select.value;
+        const qty = parseFloat(row.querySelector('.mat-qty').value) || 0;
+
+        if (rmId && qty > 0) {
+          const rawItem = rawMaterials.find(r => r.id === rmId);
+          if (rawItem) {
+            if (qty > rawItem.qtyCurrent) {
+              hasInsufficientStock = true;
+              insufficientMessage += `"${rawItem.name}" এর পর্যাপ্ত স্টক নেই (চাহিদা: ${qty} ${rawItem.unit}, মজুত: ${rawItem.qtyCurrent} ${rawItem.unit})\n`;
+            }
+
+            const itemCost = qty * rawItem.unitPrice;
+            materialsUsed.push({
+              rawMaterialId: rmId,
+              name: rawItem.name,
+              unit: rawItem.unit,
+              unitPrice: rawItem.unitPrice,
+              qtyUsed: qty,
+              totalCost: itemCost,
+              qtyPerPiece: parseFloat((qty / batchQty).toFixed(3)),
+              costPerPiece: parseFloat((itemCost / batchQty).toFixed(2))
+            });
+          }
+        }
+      });
+
+      if (materialsUsed.length === 0) {
+        Swal.fire('কাঁচামাল নির্বাচন অসম্পূর্ণ', 'অনুগ্রহ করে কাঁচামাল এবং ব্যবহারের পরিমাণ সঠিকভাবে দিন।', 'warning');
+        return;
+      }
+
+      if (hasInsufficientStock) {
+        Swal.fire({
+          title: 'স্টক ঘাটতি সতর্কতা!',
+          text: insufficientMessage,
+          icon: 'error',
+          confirmButtonText: 'ঠিক করুন'
+        });
+        return;
+      }
+
+      // Collect Labor Costs
+      const laborCosts = [];
+      document.querySelectorAll('#laborRowsContainer > div').forEach(row => {
+        const name = row.querySelector('.labor-name').value.trim();
+        const type = row.querySelector('.labor-type').value;
+        const paramVal = parseFloat(row.querySelector('.labor-param-input').value) || 0;
+        const rateVal = parseFloat(row.querySelector('.labor-rate-input').value) || 0;
+
+        let totalWage = 0;
+        if (type === 'DAYS') totalWage = paramVal * rateVal;
+        else if (type === 'PIECE') totalWage = paramVal * rateVal;
+        else if (type === 'FIXED') totalWage = rateVal;
+
+        if (name && totalWage >= 0) {
+          laborCosts.push({
+            workerName: name,
+            wageType: type,
+            daysWorked: type === 'DAYS' ? paramVal : 0,
+            dailyRate: type === 'DAYS' ? rateVal : 0,
+            pieceRate: type === 'PIECE' ? rateVal : 0,
+            totalPcs: type === 'PIECE' ? paramVal : 0,
+            totalLaborCost: totalWage,
+            laborCostPerPiece: parseFloat((totalWage / batchQty).toFixed(2))
+          });
+        }
+      });
+
+      // Collect Overheads
+      const elec = parseFloat(document.getElementById('overheadElectricity').value) || 0;
+      const pkg = parseFloat(document.getElementById('overheadPackaging').value) || 0;
+      const misc = parseFloat(document.getElementById('overheadMisc').value) || 0;
+      const overheadCosts = [];
+      if (elec > 0) overheadCosts.push({ name: 'ইলেকট্রিসিটি ও আয়রন', amount: elec });
+      if (pkg > 0) overheadCosts.push({ name: 'প্যাকেজিং বক্স ও হ্যাংট্যাগ', amount: pkg });
+      if (misc > 0) overheadCosts.push({ name: 'যাতায়াত / অন্যান্য', amount: misc });
+
+      const totalMaterialCost = materialsUsed.reduce((acc, i) => acc + i.totalCost, 0);
+      const totalLaborCost = laborCosts.reduce((acc, i) => acc + i.totalLaborCost, 0);
+      const totalOverheadCost = overheadCosts.reduce((acc, i) => acc + i.amount, 0);
+      const totalBatchCost = totalMaterialCost + totalLaborCost + totalOverheadCost;
+      const costPerDress = parseFloat((totalBatchCost / batchQty).toFixed(2));
+
+      // Generate Unique Batch Number
+      const batchNo = 'PB-' + prodDate.replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+
+      const newBatch = {
+        id: 'prod-' + Date.now(),
+        batchNo: batchNo,
+        date: prodDate,
+        dressId: dress.id,
+        dressCode: dress.code,
+        dressName: dress.name,
+        dressImage: dress.image || '',
+        batchQty: batchQty,
+        materialsUsed: materialsUsed,
+        laborCosts: laborCosts,
+        overheadCosts: overheadCosts,
+        totalMaterialCost: totalMaterialCost,
+        totalLaborCost: totalLaborCost,
+        totalOverheadCost: totalOverheadCost,
+        totalBatchCost: totalBatchCost,
+        costPerDress: costPerDress,
+        suggestedSellingPrice: dress.targetSalePrice || (costPerDress * 1.3),
+        notes: `প্রোডাকশন ব্যাচ ${batchNo} সম্পন্ন`
+      };
+
+      // -------------------------------------------------------------
+      // ATOMIC STOCK DEDUCTION FROM RAW MATERIALS
+      // -------------------------------------------------------------
+      materialsUsed.forEach(used => {
+        const rawItem = rawMaterials.find(r => r.id === used.rawMaterialId);
+        if (rawItem) {
+          rawItem.qtyCurrent = Math.max(0, parseFloat((rawItem.qtyCurrent - used.qtyUsed).toFixed(2)));
+        }
+      });
+
+      // Save Production Batch
+      productionBatches.unshift(newBatch);
+      saveAllData();
+
+      // Reset Form
+      document.getElementById('productionCostingForm').reset();
+      initDefaultDates();
+      document.getElementById('materialRowsContainer').innerHTML = '';
+      document.getElementById('laborRowsContainer').innerHTML = '';
+      addMaterialRow();
+      addLaborRow();
+      document.getElementById('selectedDressPreviewStrip').classList.add('hidden');
+      recalculateLiveCosting();
+
+      refreshAllViews();
+
+      // Show Success with Detailed Result Modal
+      Swal.fire({
+        icon: 'success',
+        title: 'প্রোডাকশন সফলভাবে সম্পন্ন ও স্টক কর্তন হয়েছে!',
+        html: `
+          <div class="text-left text-xs space-y-2 mt-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <p><strong>ড্রেস:</strong> [${newBatch.dressCode}] ${newBatch.dressName}</p>
+            <p><strong>মোট তৈরি:</strong> ${newBatch.batchQty} Pcs</p>
+            <p><strong>মোট ব্যাচ খরচ:</strong> ৳ ${newBatch.totalBatchCost.toLocaleString()}</p>
+            <p class="text-sm font-bold text-sky-700"><strong>✨ ১টি ড্রেসের উৎপাদন খরচ:</strong> ৳ ${newBatch.costPerDress.toLocaleString()}</p>
+          </div>
+        `,
+        confirmButtonText: 'বিস্তারিত কস্টিং শিট দেখুন',
+        showCancelButton: true,
+        cancelButtonText: 'ঠিক আছে'
+      }).then((res) => {
+        if (res.isConfirmed) {
+          openCostDetailsModal(newBatch.id);
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 9. RAW MATERIAL PURCHASE & INVENTORY MANAGEMENT (TAB 2)
+    // -----------------------------------------------------------------
+    function calcRawPurchaseTotal() {
+      const qty = parseFloat(document.getElementById('rawQty').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('rawUnitPrice').value) || 0;
+      const total = qty * unitPrice;
+      document.getElementById('rawTotalCost').value = total > 0 ? total.toFixed(2) : '';
+    }
+
+    function previewRawImage(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          document.getElementById('rawImagePreview').src = evt.target.result;
+          document.getElementById('rawImagePreviewContainer').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function clearRawImage() {
+      document.getElementById('rawImageFile').value = '';
+      document.getElementById('rawImagePreview').src = '';
+      document.getElementById('rawImagePreviewContainer').classList.add('hidden');
+    }
+
+    function handleRawPurchaseSubmit(e) {
+      e.preventDefault();
+
+      const name = document.getElementById('rawName').value.trim();
+      const category = document.getElementById('rawCategory').value;
+      const unit = document.getElementById('rawUnit').value;
+      const qty = parseFloat(document.getElementById('rawQty').value) || 0;
+      const unitPrice = parseFloat(document.getElementById('rawUnitPrice').value) || 0;
+      const totalCost = parseFloat(document.getElementById('rawTotalCost').value) || (qty * unitPrice);
+      const supplier = document.getElementById('rawSupplier').value.trim();
+      const purchaseDate = document.getElementById('rawDate').value || new Date().toISOString().split('T')[0];
+      const imagePreviewSrc = document.getElementById('rawImagePreview').src;
+
+      const newRawItem = {
+        id: 'raw-' + Date.now(),
+        name: name,
+        category: category,
+        unit: unit,
+        qtyPurchased: qty,
+        qtyCurrent: qty,
+        unitPrice: unitPrice,
+        totalCost: totalCost,
+        supplier: supplier || 'মার্কেট সোর্স',
+        purchaseDate: purchaseDate,
+        image: imagePreviewSrc.startsWith('data:image') ? imagePreviewSrc : ''
+      };
+
+      rawMaterials.unshift(newRawItem);
+      saveAllData();
+
+      document.getElementById('rawPurchaseForm').reset();
+      clearRawImage();
+      initDefaultDates();
+      refreshAllViews();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'কাঁচামাল যুক্ত হয়েছে!',
+        text: `${newRawItem.name} (${qty} ${unit}) সফলভাবে ইনভেন্টরিতে যুক্ত হয়েছে।`,
+        timer: 1800,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
+    function renderRawMaterialsTable() {
+      const tbody = document.getElementById('rawMaterialsTableBody');
+      tbody.innerHTML = '';
+
+      if (rawMaterials.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">কোনো কাঁচামাল পাওয়া যায়নি</td></tr>`;
+        document.getElementById('rawLedgerStats').innerText = `০ টি কাঁচামাল`;
+        return;
+      }
+
+      document.getElementById('rawLedgerStats').innerText = `সর্বমোট ${rawMaterials.length} টি কাঁচামাল এন্ট্রি`;
+
+      // Update Datalist suggestions
+      const dl = document.getElementById('rawSuggestions');
+      dl.innerHTML = '';
+      rawMaterials.forEach(rm => {
+        const opt = document.createElement('option');
+        opt.value = rm.name;
+        dl.appendChild(opt);
+      });
+
+      let lowStockCount = 0;
+
+      rawMaterials.forEach((item, idx) => {
+        const currentStock = parseFloat(item.qtyCurrent) || 0;
+        const initialStock = parseFloat(item.qtyPurchased) || 0;
+
+        let statusBadge = '';
+        if (currentStock <= 0) {
+          statusBadge = `<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full font-bold text-[10px]"><i class="fa-solid fa-triangle-exclamation"></i> স্টক শেষ</span>`;
+          lowStockCount++;
+        } else if (currentStock <= 5) {
+          statusBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold text-[10px]"><i class="fa-solid fa-circle-exclamation"></i> লো স্টক</span>`;
+          lowStockCount++;
+        } else {
+          statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold text-[10px]"><i class="fa-solid fa-check"></i> মজুত আছে</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50/80 border-b border-slate-100 transition";
+        tr.innerHTML = `
+          <td class="py-2.5 px-3">
+            ${item.image ? `
+              <img src="${item.image}" onclick="openImageLightbox('${encodeURIComponent(item.image)}', '${item.name}')" class="w-9 h-9 object-cover rounded-lg border border-slate-200 cursor-pointer hover:scale-105 transition" alt="img">
+            ` : '<span class="text-slate-300 text-xs"><i class="fa-regular fa-image"></i></span>'}
+          </td>
+          <td class="py-2.5 px-3">
+            <div class="font-bold text-slate-900 text-xs">${item.name}</div>
+            <div class="text-[10px] text-slate-400">${item.category} • ${item.supplier}</div>
+          </td>
+          <td class="py-2.5 px-3 text-right font-semibold text-slate-700">${initialStock} ${item.unit}</td>
+          <td class="py-2.5 px-3 text-right font-medium text-slate-600">৳ ${item.unitPrice}</td>
+          <td class="py-2.5 px-3 text-right font-bold text-slate-900">৳ ${(item.totalCost || 0).toLocaleString()}</td>
+          <td class="py-2.5 px-3 text-right font-black text-emerald-700 text-sm">${currentStock} ${item.unit}</td>
+          <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+          <td class="py-2.5 px-3 text-center">
+            <button onclick="deleteRawMaterial('${item.id}')" title="মুছে ফেলুন" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition flex items-center justify-center text-xs">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update Low Stock tab badge
+      const badge = document.getElementById('lowStockRawBadge');
+      if (lowStockCount > 0) {
+        badge.innerText = lowStockCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function filterRawMaterialsTable() {
+      const q = document.getElementById('rawSearch').value.toLowerCase().trim();
+      const cat = document.getElementById('rawCategoryFilter').value;
+      const rows = document.querySelectorAll('#rawMaterialsTableBody tr');
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        const matchesQuery = !q || text.includes(q);
+        const matchesCat = (cat === 'ALL') || text.includes(cat.toLowerCase());
+        row.style.display = (matchesQuery && matchesCat) ? '' : 'none';
+      });
+    }
+
+    function deleteRawMaterial(id) {
+      Swal.fire({
+        title: 'মুছে ফেলতে চান?',
+        text: 'এই কাঁচামাল আইটেমটি স্থায়ীভাবে ডিলিট হবে।',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'হ্যাঁ, মুছুন',
+        cancelButtonText: 'বাতিল'
+      }).then(res => {
+        if (res.isConfirmed) {
+          rawMaterials = rawMaterials.filter(r => r.id !== id);
+          saveAllData();
+          refreshAllViews();
+          Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 10. DRESS CATALOG & CODE REGISTRY (TAB 3)
+    // -----------------------------------------------------------------
+    function generateAutoDressCode() {
+      const prefix = 'DR-';
+      const num = Math.floor(100 + Math.random() * 900);
+      document.getElementById('dressCode').value = prefix + num;
+    }
+
+    function previewDressImage(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          document.getElementById('dressImagePreview').src = evt.target.result;
+          document.getElementById('dressImagePreviewContainer').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function clearDressImage() {
+      document.getElementById('dressImageFile').value = '';
+      document.getElementById('dressImagePreview').src = '';
+      document.getElementById('dressImagePreviewContainer').classList.add('hidden');
+    }
+
+    function handleDressRegistrySubmit(e) {
+      e.preventDefault();
+
+      const code = document.getElementById('dressCode').value.trim().toUpperCase();
+      const name = document.getElementById('dressName').value.trim();
+      const category = document.getElementById('dressCategory').value;
+      const targetSalePrice = parseFloat(document.getElementById('dressTargetPrice').value) || 0;
+      const notes = document.getElementById('dressNotes').value.trim();
+      const imagePreviewSrc = document.getElementById('dressImagePreview').src;
+
+      // Check if code already exists
+      const exists = dressCatalog.some(d => d.code === code);
+      if (exists) {
+        Swal.fire('ডুপ্লিকেট কোড', `এই কোড (${code}) ইতিমধ্যে অন্য একটি ড্রেসে ব্যবহৃত হয়েছে!`, 'warning');
+        return;
+      }
+
+      const newDress = {
+        id: 'dress-' + Date.now(),
+        code: code,
+        name: name,
+        category: category,
+        targetSalePrice: targetSalePrice,
+        image: imagePreviewSrc.startsWith('data:image') ? imagePreviewSrc : '',
+        notes: notes
+      };
+
+      dressCatalog.unshift(newDress);
+      saveAllData();
+
+      document.getElementById('dressRegistryForm').reset();
+      clearDressImage();
+      refreshAllViews();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'ড্রেস ক্যাটালগে যুক্ত হয়েছে!',
+        text: `[${code}] ${name} সফলভাবে যুক্ত হয়েছে।`,
+        timer: 1800,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end'
+      });
+    }
+
+    function renderDressCatalog() {
+      const container = document.getElementById('dressCatalogGrid');
+      container.innerHTML = '';
+
+      document.getElementById('dressCatalogStats').innerText = `সর্বমোট ${dressCatalog.length} টি ড্রেস মডেল নিবন্ধিত`;
+
+      if (dressCatalog.length === 0) {
+        container.innerHTML = `<div class="col-span-3 text-center py-10 text-slate-400">কোনো ড্রেস মডেল নিবন্ধিত নেই। বাম পাশের ফর্ম থেকে নতুন ড্রেস যোগ করুন।</div>`;
+        return;
+      }
+
+      dressCatalog.forEach(dress => {
+        const div = document.createElement('div');
+        div.className = "bg-slate-50 border border-slate-200/90 rounded-2xl p-4 space-y-3 hover:border-indigo-300 hover:shadow-md transition flex flex-col justify-between";
+
+        div.innerHTML = `
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <span class="font-mono font-bold bg-indigo-100 text-indigo-800 text-xs px-2.5 py-0.5 rounded-lg">${dress.code}</span>
+              <span class="text-[11px] text-slate-500 font-medium">${dress.category || 'ড্রেস'}</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              ${dress.image ? `
+                <img src="${dress.image}" onclick="openImageLightbox('${encodeURIComponent(dress.image)}', '${dress.name}')" class="w-12 h-12 object-cover rounded-xl border border-slate-200 cursor-pointer hover:scale-105 transition" alt="img">
+              ` : `
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-400 flex items-center justify-center text-lg"><i class="fa-solid fa-shirt"></i></div>
+              `}
+              <div class="flex-1 min-w-0">
+                <h4 class="font-bold text-slate-900 text-xs truncate">${dress.name}</h4>
+                <p class="text-[11px] text-emerald-700 font-bold mt-0.5">টার্গেট মূল্য: ৳ ${(dress.targetSalePrice || 0).toLocaleString()}</p>
+              </div>
+            </div>
+
+            ${dress.notes ? `<p class="text-[10px] text-slate-400 mt-2 line-clamp-2">${dress.notes}</p>` : ''}
+          </div>
+
+          <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
+            <button onclick="startProductionForDress('${dress.id}')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
+              <i class="fa-solid fa-calculator"></i> কস্টিং শুরু করুন
+            </button>
+            <button onclick="deleteDress('${dress.id}')" title="ডিলিট" class="w-7 h-7 rounded-lg bg-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition flex items-center justify-center text-xs">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function startProductionForDress(dressId) {
+      switchTab('production');
+      document.getElementById('prodDressSelect').value = dressId;
+      handleDressSelectChange();
+    }
+
+    function filterDressCatalog() {
+      const q = document.getElementById('dressSearch').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('#dressCatalogGrid > div');
+      cards.forEach(card => {
+        const text = card.innerText.toLowerCase();
+        card.style.display = (!q || text.includes(q)) ? '' : 'none';
+      });
+    }
+
+    function deleteDress(id) {
+      Swal.fire({
+        title: 'মুছে ফেলতে চান?',
+        text: 'এই ড্রেস মডেলটি ক্যাটালগ থেকে মুছে ফেলা হবে।',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'হ্যাঁ, মুছুন',
+        cancelButtonText: 'বাতিল'
+      }).then(res => {
+        if (res.isConfirmed) {
+          dressCatalog = dressCatalog.filter(d => d.id !== id);
+          saveAllData();
+          refreshAllViews();
+          Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 11. PRODUCTION HISTORY & JOB CARDS (TAB 4)
+    // -----------------------------------------------------------------
+    function renderProductionHistory() {
+      const tbody = document.getElementById('productionHistoryTableBody');
+      tbody.innerHTML = '';
+
+      if (productionBatches.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-400">কোনো সম্পন্ন প্রোডাকশন হিস্ট্রি পাওয়া যায়নি</td></tr>`;
+        return;
+      }
+
+      productionBatches.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 border-b border-slate-100 transition";
+        tr.innerHTML = `
+          <td class="py-3 px-3">
+            <div class="font-mono font-bold text-slate-800 text-xs">${b.batchNo}</div>
+            <div class="text-[10px] text-slate-400">${b.date}</div>
+          </td>
+          <td class="py-3 px-3">
+            <div class="flex items-center gap-2">
+              ${b.dressImage ? `<img src="${b.dressImage}" class="w-8 h-8 rounded-lg object-cover border border-slate-200">` : ''}
+              <div>
+                <span class="font-bold text-slate-900 text-xs">${b.dressName}</span>
+                <span class="font-mono text-[10px] text-sky-700 block">[${b.dressCode}]</span>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-3 text-right font-extrabold text-slate-900">${b.batchQty} Pcs</td>
+          <td class="py-3 px-3 text-right font-semibold text-emerald-700">৳ ${(b.totalMaterialCost || 0).toLocaleString()}</td>
+          <td class="py-3 px-3 text-right font-semibold text-purple-700">৳ ${(b.totalLaborCost || 0).toLocaleString()}</td>
+          <td class="py-3 px-3 text-right font-extrabold text-slate-900">৳ ${(b.totalBatchCost || 0).toLocaleString()}</td>
+          <td class="py-3 px-3 text-right font-black text-sky-700 text-sm">৳ ${(b.costPerDress || 0).toLocaleString()}</td>
+          <td class="py-3 px-3 text-center whitespace-nowrap">
+            <div class="flex items-center justify-center gap-1.5">
+              <button onclick="openCostDetailsModal('${b.id}')" title="বিস্তারিত ব্রেকডাউন ভিউ" class="w-7 h-7 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 transition flex items-center justify-center text-xs">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button onclick="printSingleJobCard('${b.id}')" title="জব কার্ড প্রিন্ট" class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition flex items-center justify-center text-xs">
+                <i class="fa-solid fa-print"></i>
+              </button>
+              <button onclick="deleteProductionBatch('${b.id}')" title="ডিলিট" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition flex items-center justify-center text-xs">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterHistoryTable() {
+      const q = document.getElementById('historySearch').value.toLowerCase().trim();
+      const rows = document.querySelectorAll('#productionHistoryTableBody tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = (!q || text.includes(q)) ? '' : 'none';
+      });
+    }
+
+    function deleteProductionBatch(id) {
+      Swal.fire({
+        title: 'ব্যাচ রেকর্ড মুছতে চান?',
+        text: 'এই প্রোডাকশন হিসাবটি মুছে ফেলা হবে (কাঁচামাল স্টক অটো রিভার্স হবে না)।',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'হ্যাঁ, মুছুন',
+        cancelButtonText: 'বাতিল'
+      }).then(res => {
+        if (res.isConfirmed) {
+          productionBatches = productionBatches.filter(b => b.id !== id);
+          saveAllData();
+          refreshAllViews();
+          Swal.fire('মুছে ফেলা হয়েছে!', '', 'success');
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 12. DETAILED COST BREAKDOWN MODAL & JOB CARD
+    // -----------------------------------------------------------------
+    function openCostDetailsModal(batchId) {
+      const batch = productionBatches.find(b => b.id === batchId);
+      if (!batch) return;
+
+      currentModalBatch = batch;
+
+      document.getElementById('modalDressName').innerText = `[${batch.dressCode}] ${batch.dressName}`;
+      document.getElementById('modalBatchNo').innerText = batch.batchNo;
+      document.getElementById('modalDate').innerText = 'তারিখ: ' + batch.date;
+      document.getElementById('modalUnitCost').innerText = `৳ ${(batch.costPerDress || 0).toLocaleString()}`;
+      document.getElementById('modalBatchQty').innerText = `${batch.batchQty} Pcs`;
+
+      const imgEl = document.getElementById('modalDressImg');
+      imgEl.src = batch.dressImage || 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=100&auto=format&fit=crop&q=60';
+
+      // Materials Table
+      const matTbody = document.getElementById('modalMaterialBreakdownBody');
+      matTbody.innerHTML = '';
+      (batch.materialsUsed || []).forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2.5 font-bold text-slate-800">${m.name}</td>
+          <td class="p-2.5 text-right">${m.qtyUsed} ${m.unit}</td>
+          <td class="p-2.5 text-right">৳ ${m.unitPrice}</td>
+          <td class="p-2.5 text-right font-bold text-slate-900">৳ ${(m.totalCost || 0).toLocaleString()}</td>
+          <td class="p-2.5 text-right font-black text-emerald-700">৳ ${(m.costPerPiece || 0).toLocaleString()}</td>
+        `;
+        matTbody.appendChild(tr);
+      });
+
+      // Labor Table
+      const laborTbody = document.getElementById('modalLaborBreakdownBody');
+      laborTbody.innerHTML = '';
+      (batch.laborCosts || []).forEach(l => {
+        let typeDesc = l.wageType === 'DAYS' ? `${l.daysWorked} দিন কাজ` : l.wageType === 'PIECE' ? `${l.totalPcs} পিস সেলাই` : 'চুক্তিভিত্তিক';
+        let rateDesc = l.wageType === 'DAYS' ? `৳ ${l.dailyRate}/দিন` : l.wageType === 'PIECE' ? `৳ ${l.pieceRate}/পিস` : 'ফিক্সড';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="p-2.5 font-bold text-slate-800">${l.workerName}</td>
+          <td class="p-2.5 text-slate-600">${typeDesc}</td>
+          <td class="p-2.5 text-right font-medium">${rateDesc}</td>
+          <td class="p-2.5 text-right font-bold text-slate-900">৳ ${(l.totalLaborCost || 0).toLocaleString()}</td>
+          <td class="p-2.5 text-right font-black text-purple-700">৳ ${(l.laborCostPerPiece || 0).toLocaleString()}</td>
+        `;
+        laborTbody.appendChild(tr);
+      });
+
+      // Profit estimation
+      const targetSale = batch.suggestedSellingPrice || (batch.costPerDress * 1.3);
+      const estProfit = targetSale - batch.costPerDress;
+      const profitMarginPct = batch.costPerDress > 0 ? ((estProfit / batch.costPerDress) * 100).toFixed(1) : 0;
+
+      document.getElementById('modalProfitMarginSummary').innerText = `টার্গেট বিক্রয়: ৳ ${Math.round(targetSale).toLocaleString()} | সম্ভাব্য লাভ: ৳ ${Math.round(estProfit).toLocaleString()} (${profitMarginPct}% মার্জিন)`;
+
+      document.getElementById('costDetailsModal').classList.remove('hidden');
+    }
+
+    function closeCostDetailsModal() {
+      document.getElementById('costDetailsModal').classList.add('hidden');
+      currentModalBatch = null;
+    }
+
+    function printModalJobCard() {
+      if (currentModalBatch) {
+        printSingleJobCard(currentModalBatch.id);
+      }
+    }
+
+    function printSingleJobCard(batchId) {
+      const batch = productionBatches.find(b => b.id === batchId);
+      if (!batch) return;
+
+      const container = document.getElementById('printableJobCardContent');
+      const now = new Date().toLocaleString('bn-BD');
+
+      let materialsHtml = '';
+      (batch.materialsUsed || []).forEach(m => {
+        materialsHtml += `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 6px 8px;">${m.name}</td>
+            <td style="padding: 6px 8px; text-align: right;">${m.qtyUsed} ${m.unit}</td>
+            <td style="padding: 6px 8px; text-align: right;">৳ ${m.unitPrice}</td>
+            <td style="padding: 6px 8px; text-align: right; font-weight: bold;">৳ ${(m.totalCost || 0).toLocaleString()}</td>
+            <td style="padding: 6px 8px; text-align: right; font-weight: bold; color: #047857;">৳ ${(m.costPerPiece || 0).toLocaleString()}</td>
           </tr>
         `;
       });
-    }
 
-    function recalcRow(idx, standardReq, unitCost) {
-      const actualVal = parseFloat(document.getElementById(`actual_${idx}`).value) || 0;
-      const wastage = actualVal - standardReq;
-      const unit = state.bom[idx].Unit;
-      
-      const wastageEl = document.getElementById(`wastage_${idx}`);
-      wastageEl.innerText = `${wastage.toFixed(2)} ${unit}`;
-      wastageEl.className = wastage > 0 ? "p-2.5 text-red-600 font-semibold" : "p-2.5 text-emerald-600 font-semibold";
-
-      const totalCost = actualVal * unitCost;
-      document.getElementById(`cost_${idx}`).innerText = `৳ ${totalCost.toFixed(2)}`;
-      
-      recalcSummary();
-    }
-
-    function recalcEverything() {
-      renderBOMTable();
-      recalcSummary();
-    }
-
-    function recalcSummary() {
-      const orderQty = parseFloat(document.getElementById('inpQty').value) || 1;
-      let totalMaterial = 0;
-      let matList = [];
-
-      state.bom.forEach((item, idx) => {
-        const actualInput = document.getElementById(`actual_${idx}`);
-        const actualVal = actualInput ? parseFloat(actualInput.value) || 0 : (item.Qty_Per_Pc * orderQty);
-        const cost = actualVal * item.Unit_Cost;
-        totalMaterial += cost;
-        matList.push({
-          name: item.Item_Name,
-          required: (item.Qty_Per_Pc * orderQty).toFixed(2),
-          actual: actualVal.toFixed(2),
-          wastage: (actualVal - (item.Qty_Per_Pc * orderQty)).toFixed(2),
-          cost: cost.toFixed(2)
-        });
+      let laborHtml = '';
+      (batch.laborCosts || []).forEach(l => {
+        let typeDesc = l.wageType === 'DAYS' ? `${l.daysWorked} দিন (@ ৳${l.dailyRate}/দিন)` : l.wageType === 'PIECE' ? `${l.totalPcs} পিস (@ ৳${l.pieceRate}/পিস)` : 'ফিক্সড';
+        laborHtml += `
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 6px 8px;">${l.workerName}</td>
+            <td style="padding: 6px 8px;">${typeDesc}</td>
+            <td style="padding: 6px 8px; text-align: right; font-weight: bold;">৳ ${(l.totalLaborCost || 0).toLocaleString()}</td>
+            <td style="padding: 6px 8px; text-align: right; font-weight: bold; color: #6b21a8;">৳ ${(l.laborCostPerPiece || 0).toLocaleString()}</td>
+          </tr>
+        `;
       });
 
-      // স্যালারি ও ওভারহেড রেট ক্যালকুলেশন
-      const unitLabour = state.salaries.reduce((sum, s) => sum + parseFloat(s.Cost_Per_Piece), 0);
-      const unitOverhead = state.overheads.reduce((sum, o) => sum + parseFloat(o.Overhead_Per_Piece), 0);
+      container.innerHTML = `
+        <div style="margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+            <span><strong>ব্যাচ নাম্বার:</strong> ${batch.batchNo}</span>
+            <span><strong>প্রোডাকশন তারিখ:</strong> ${batch.date}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span><strong>ড্রেস:</strong> [${batch.dressCode}] ${batch.dressName}</span>
+            <span><strong>তৈরি পরিমাণ:</strong> <strong>${batch.batchQty} Pcs</strong></span>
+          </div>
+        </div>
 
-      const totalLabour = unitLabour * orderQty;
-      const totalOverhead = unitOverhead * orderQty;
+        <h3 style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 12px 0 6px 0; color: #047857;">১. ব্যবহৃত কাঁচামাল ও কাপড় বিবরণী:</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;">
+          <thead style="background: #e2e8f0; font-weight: bold;">
+            <tr>
+              <th style="padding: 6px 8px; text-align: left;">কাঁচামালের নাম</th>
+              <th style="padding: 6px 8px; text-align: right;">পরিমাণ</th>
+              <th style="padding: 6px 8px; text-align: right;">দর (৳)</th>
+              <th style="padding: 6px 8px; text-align: right;">মোট টাকা</th>
+              <th style="padding: 6px 8px; text-align: right;">১টি ড্রেসে খরচ</th>
+            </tr>
+          </thead>
+          <tbody>${materialsHtml}</tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background: #f1f5f9;">
+              <td colspan="3" style="padding: 6px 8px;">মোট কাঁচামাল খরচ:</td>
+              <td style="padding: 6px 8px; text-align: right;">৳ ${(batch.totalMaterialCost || 0).toLocaleString()}</td>
+              <td style="padding: 6px 8px; text-align: right; color: #047857;">৳ ${((batch.totalMaterialCost || 0) / batch.batchQty).toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
 
-      const unitMaterial = totalMaterial / orderQty;
-      const grandUnitCost = unitMaterial + unitLabour + unitOverhead;
-      const lotTotal = totalMaterial + totalLabour + totalOverhead;
+        <h3 style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 12px 0 6px 0; color: #6b21a8;">২. কারিগর মজুরি ও স্যালারি বিবরণী:</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;">
+          <thead style="background: #e2e8f0; font-weight: bold;">
+            <tr>
+              <th style="padding: 6px 8px; text-align: left;">কারিগর / কাজের নাম</th>
+              <th style="padding: 6px 8px; text-align: left;">কাজের ধরণ ও দিন সংখ্যা</th>
+              <th style="padding: 6px 8px; text-align: right;">মোট মজুরি</th>
+              <th style="padding: 6px 8px; text-align: right;">১টি ড্রেসে মজুরি</th>
+            </tr>
+          </thead>
+          <tbody>${laborHtml}</tbody>
+          <tfoot>
+            <tr style="font-weight: bold; background: #f1f5f9;">
+              <td colspan="2" style="padding: 6px 8px;">মোট কারিগর স্যালারি:</td>
+              <td style="padding: 6px 8px; text-align: right;">৳ ${(batch.totalLaborCost || 0).toLocaleString()}</td>
+              <td style="padding: 6px 8px; text-align: right; color: #6b21a8;">৳ ${((batch.totalLaborCost || 0) / batch.batchQty).toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        </table>
 
-      // UI আপডেট
-      document.getElementById('lblUnitMat').innerText = `৳ ${unitMaterial.toFixed(2)}`;
-      document.getElementById('lblUnitLabour').innerText = `৳ ${unitLabour.toFixed(2)}`;
-      document.getElementById('lblUnitOverhead').innerText = `৳ ${unitOverhead.toFixed(2)}`;
-      document.getElementById('lblGrandUnitCost').innerText = `৳ ${grandUnitCost.toFixed(2)}`;
-      document.getElementById('lblLotTotal').innerText = `৳ ${Math.round(lotTotal).toLocaleString()}`;
+        <div style="background: #0f172a; color: white; padding: 14px; border-radius: 8px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8;">সর্বমোট ব্যাচ উৎপাদন ব্যয়</div>
+            <div style="font-size: 20px; font-weight: bold;">৳ ${(batch.totalBatchCost || 0).toLocaleString()}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #4ade80;">✨ ১টি ড্রেসের নিখুঁত উৎপাদন খরচ</div>
+            <div style="font-size: 24px; font-weight: 900; color: #facc15;">৳ ${(batch.costPerDress || 0).toLocaleString()}</div>
+          </div>
+        </div>
+      `;
 
-      calculatedPayload = {
-        productId: document.getElementById('selProduct').value,
-        orderQty: orderQty,
-        startDate: document.getElementById('dtStart').value,
-        readyDate: document.getElementById('dtReady').value,
-        leadDays: calcLeadDays(),
-        materials: matList,
-        totalMaterialCost: totalMaterial.toFixed(2),
-        totalLabourCost: totalLabour.toFixed(2),
-        totalOverheadCost: totalOverhead.toFixed(2),
-        totalProjectCost: lotTotal.toFixed(2),
-        perPieceCost: grandUnitCost.toFixed(2)
-      };
+      const printArea = document.getElementById('printableJobCard');
+      printArea.classList.remove('hidden');
+      window.print();
+      printArea.classList.add('hidden');
     }
 
-    function submitToSheet() {
-      const btn = document.getElementById('btnSubmit');
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> সিঙ্ক হচ্ছে...`;
+    // -----------------------------------------------------------------
+    // 13. CHARTS & ANALYTICS
+    // -----------------------------------------------------------------
+    function renderAnalyticsCharts() {
+      // 1. Cost Split Doughnut Chart
+      let totalMat = 0, totalLab = 0, totalOver = 0;
+      productionBatches.forEach(b => {
+        totalMat += (b.totalMaterialCost || 0);
+        totalLab += (b.totalLaborCost || 0);
+        totalOver += (b.totalOverheadCost || 0);
+      });
 
-      fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(calculatedPayload)
-      })
-      .then(res => res.json())
-      .then(res => {
-        if(res.status === "success") {
-          alert(`প্রোডাকশন ডেটা সংরক্ষিত হয়েছে!\nProduction Order ID: ${res.prodId}`);
-        } else {
-          alert("এরর: " + res.message);
+      const ctxSplit = document.getElementById('costSplitChart').getContext('2d');
+      if (costSplitChartInstance) costSplitChartInstance.destroy();
+
+      costSplitChartInstance = new Chart(ctxSplit, {
+        type: 'doughnut',
+        data: {
+          labels: ['কাঁচামাল খরচ (Fabric/Accessories)', 'কারিগর মজুরি/স্যালারি (Labor)', 'ওভারহেড ও অন্যান্য (Overhead)'],
+          datasets: [{
+            data: [totalMat || 1, totalLab || 1, totalOver || 1],
+            backgroundColor: ['#10b981', '#a855f7', '#f59e0b'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
         }
-      })
-      .catch(err => alert("কানেকশন এরর: " + err.toString()))
-      .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Google Sheet-এ সিঙ্ক করুন`;
       });
+
+      // 2. Top Produced Styles Bar Chart
+      const dressCountMap = {};
+      productionBatches.forEach(b => {
+        const key = b.dressCode || b.dressName;
+        dressCountMap[key] = (dressCountMap[key] || 0) + (parseInt(b.batchQty) || 0);
+      });
+
+      const labels = Object.keys(dressCountMap).slice(0, 5);
+      const data = labels.map(k => dressCountMap[k]);
+
+      const ctxTop = document.getElementById('topDressesChart').getContext('2d');
+      if (topDressesChartInstance) topDressesChartInstance.destroy();
+
+      topDressesChartInstance = new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+          labels: labels.length > 0 ? labels : ['কোনো ব্যাচ নেই'],
+          datasets: [{
+            label: 'উৎপাদিত পরিমাণ (Pcs)',
+            data: data.length > 0 ? data : [0],
+            backgroundColor: '#0284c7',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 14. EXCEL (XLSX) EXPORT
+    // -----------------------------------------------------------------
+    function exportAllDataToExcel() {
+      const wb = XLSX.utils.book_new();
+
+      // 1. Raw Materials Sheet
+      const rawRows = rawMaterials.map((r, i) => ({
+        "ক্রমিক": i + 1,
+        "কাঁচামালের নাম": r.name,
+        "ক্যাটাগরি": r.category,
+        "একক": r.unit,
+        "ক্রয় পরিমাণ": r.qtyPurchased,
+        "অবশিষ্ট স্টক": r.qtyCurrent,
+        "একক মূল্য (৳)": r.unitPrice,
+        "মোট ক্রয় (৳)": r.totalCost,
+        "সাপ্লায়ার": r.supplier,
+        "তারিখ": r.purchaseDate
+      }));
+      const wsRaw = XLSX.utils.json_to_sheet(rawRows);
+      XLSX.utils.book_append_sheet(wb, wsRaw, "Raw Materials Stock");
+
+      // 2. Production History Sheet
+      const prodRows = productionBatches.map((b, i) => ({
+        "ক্রমিক": i + 1,
+        "ব্যাচ নং": b.batchNo,
+        "তারিখ": b.date,
+        "ড্রেস কোড": b.dressCode,
+        "ড্রেসের নাম": b.dressName,
+        "ব্যাচ পরিমাণ (Pcs)": b.batchQty,
+        "কাঁচামাল খরচ (৳)": b.totalMaterialCost,
+        "মজুরি খরচ (৳)": b.totalLaborCost,
+        "ওভারহেড খরচ (৳)": b.totalOverheadCost,
+        "মোট ব্যাচ খরচ (৳)": b.totalBatchCost,
+        "১টি ড্রেসের খরচ (৳)": b.costPerDress,
+        "টার্গেট বিক্রয় মূল্য (৳)": b.suggestedSellingPrice
+      }));
+      const wsProd = XLSX.utils.json_to_sheet(prodRows);
+      XLSX.utils.book_append_sheet(wb, wsProd, "Production & Costing");
+
+      const today = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Garment_Production_Costing_Report_${today}.xlsx`);
+    }
+
+    // -----------------------------------------------------------------
+    // 15. BACKUP & RESTORE
+    // -----------------------------------------------------------------
+    function backupSystemData() {
+      Swal.fire({
+        title: 'ডাটা ব্যাকআপ ও রিস্টোর',
+        html: `
+          <div class="text-left text-xs space-y-3">
+            <p>আপনার সম্পূর্ণ ইনভেন্টরি, কাঁচামাল এবং কস্টিং ডাটা JSON ব্যাকআপ হিসেবে ডাউনলোড করতে পারেন বা আগের ব্যাকআপ রিস্টোর করতে পারেন।</p>
+            <div class="flex gap-2">
+              <button onclick="downloadJsonBackup()" class="flex-1 bg-sky-600 text-white py-2 rounded-xl font-bold">ব্যাকআপ ডাউনলোড (JSON)</button>
+            </div>
+            <hr class="my-2">
+            <div>
+              <label class="block font-bold mb-1">ব্যাকআপ ফাইল নির্বাচন করে রিস্টোর করুন:</label>
+              <input type="file" id="restoreFileInput" accept=".json" class="w-full text-xs">
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'ফাইল রিস্টোর করুন',
+        cancelButtonText: 'বন্ধ করুন',
+        preConfirm: () => {
+          const fileInput = document.getElementById('restoreFileInput');
+          if (fileInput && fileInput.files[0]) {
+            return fileInput.files[0];
+          }
+        }
+      }).then(res => {
+        if (res.isConfirmed && res.value) {
+          const file = res.value;
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const data = JSON.parse(e.target.result);
+              if (data.rawMaterials && data.dressCatalog) {
+                rawMaterials = data.rawMaterials || [];
+                dressCatalog = data.dressCatalog || [];
+                productionBatches = data.productionBatches || [];
+                saveAllData();
+                refreshAllViews();
+                Swal.fire('সফল!', 'ডাটা সফলভাবে রিস্টোর হয়েছে।', 'success');
+              } else {
+                Swal.fire('ত্রুটি!', 'ভুল ফাইল ফরম্যাট।', 'error');
+              }
+            } catch (err) {
+              Swal.fire('ত্রুটি!', 'ফাইল রিড করা যায়নি: ' + err.message, 'error');
+            }
+          };
+          reader.readAsText(file);
+        }
+      });
+    }
+
+    function downloadJsonBackup() {
+      const data = {
+        exportDate: new Date().toISOString(),
+        rawMaterials,
+        dressCatalog,
+        productionBatches
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Garment_ERP_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function loadDemoDataConfirmation() {
+      Swal.fire({
+        title: 'ডেমো ডাটা লোড করতে চান?',
+        text: 'বর্তমান ডাটাসহ নতুন টেস্ট ডেমো ডাটা যুক্ত হবে।',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'হ্যাঁ, লোড করুন',
+        cancelButtonText: 'বাতিল'
+      }).then(res => {
+        if (res.isConfirmed) {
+          populateInitialSampleData();
+          refreshAllViews();
+          Swal.fire('ডেমো ডাটা লোড হয়েছে!', '', 'success');
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // 16. IMAGE LIGHTBOX & TAB SWITCHING
+    // -----------------------------------------------------------------
+    function openImageLightbox(src, title) {
+      document.getElementById('lightboxImgSrc').src = decodeURIComponent(src);
+      document.getElementById('lightboxTitle').innerText = title || 'ছবির ভিউ';
+      document.getElementById('imageLightboxModal').classList.remove('hidden');
+    }
+
+    function closeImageLightbox() {
+      document.getElementById('imageLightboxModal').classList.add('hidden');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      const activeContent = document.getElementById(`tab-content-${tabId}`);
+      if (activeBtn) activeBtn.classList.add('active');
+      if (activeContent) activeContent.classList.remove('hidden');
+
+      if (tabId === 'production') {
+        populateDressDropdown();
+      }
     }
   </script>
 </body>
