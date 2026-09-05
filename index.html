@@ -76,17 +76,34 @@
 
     /* Print Styles for Job Card & Cost Sheet */
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+      }
+      body {
+        background: white !important;
+        color: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       body * { visibility: hidden !important; }
       #printableJobCard, #printableJobCard * { visibility: visible !important; }
       #printableJobCard {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 24px;
-        background: white;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
         display: block !important;
+      }
+      .no-print { display: none !important; }
+      .page-break { page-break-after: always; }
+      img {
+        max-width: 100% !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
     }
   </style>
@@ -429,8 +446,12 @@
               <p class="text-xs text-slate-300 mt-1" id="livePerDressExplanation">কাঁচামাল + স্যালারি + অতিরিক্ত খরচ বাবদ নিখুঁত কস্টিং</p>
             </div>
 
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-              <button type="submit" id="btnSubmitProduction" class="w-full sm:w-auto bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow-xl shadow-sky-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base">
+            <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <button type="button" onclick="printLiveDraftJobCard()" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-700 text-white font-bold px-5 py-3.5 rounded-2xl shadow-md transition flex items-center justify-center gap-2 text-xs sm:text-sm border border-slate-700 cursor-pointer" title="বর্তমান হিসাব ও ড্রেসের ছবিসহ স্লিপ প্রিন্ট করুন">
+                <i class="fa-solid fa-print text-amber-300"></i>
+                <span>কস্টিং স্লিপ প্রিন্ট (ছবিসহ)</span>
+              </button>
+              <button type="submit" id="btnSubmitProduction" class="w-full sm:w-auto bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-extrabold px-7 py-3.5 rounded-2xl shadow-xl shadow-sky-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer">
                 <i class="fa-solid fa-check-double"></i>
                 <span>প্রোডাকশন সেভ ও স্টক কর্তন করুন</span>
               </button>
@@ -2007,13 +2028,15 @@
         img.onload = function() {
           let width = img.width;
           let height = img.height;
-          if (width > maxWidth || height > maxHeight) {
+          const maxW = maxWidth || 800;
+          const maxH = maxHeight || 800;
+          if (width > maxW || height > maxH) {
             if (width > height) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
+              height = Math.round((height * maxW) / width);
+              width = maxW;
             } else {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
+              width = Math.round((width * maxH) / height);
+              height = maxH;
             }
           }
           const canvas = document.createElement('canvas');
@@ -2021,7 +2044,7 @@
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-          callback(canvas.toDataURL('image/jpeg', 0.65));
+          callback(canvas.toDataURL('image/jpeg', 0.85));
         };
         img.src = evt.target.result;
       };
@@ -2031,7 +2054,7 @@
     function previewRawImage(e) {
       const file = e.target.files[0];
       if (file) {
-        resizeImageFile(file, 300, 300, (resizedDataUrl) => {
+        resizeImageFile(file, 800, 800, (resizedDataUrl) => {
           document.getElementById('rawImagePreview').src = resizedDataUrl;
           document.getElementById('rawImagePreviewContainer').classList.remove('hidden');
         });
@@ -2041,7 +2064,7 @@
     function previewDressImage(e) {
       const file = e.target.files[0];
       if (file) {
-        resizeImageFile(file, 300, 300, (resizedDataUrl) => {
+        resizeImageFile(file, 800, 800, (resizedDataUrl) => {
           document.getElementById('dressImagePreview').src = resizedDataUrl;
           document.getElementById('dressImagePreviewContainer').classList.remove('hidden');
         });
@@ -2244,7 +2267,7 @@
     function previewEditRawImage(e) {
       const file = e.target.files[0];
       if (file) {
-        resizeImageFile(file, 300, 300, (resizedDataUrl) => {
+        resizeImageFile(file, 800, 800, (resizedDataUrl) => {
           const prev = document.getElementById('editRawImagePreview');
           prev.src = resizedDataUrl;
           prev.classList.remove('hidden');
@@ -2477,9 +2500,12 @@
             ${dress.notes ? `<p class="text-[10px] text-slate-400 mt-2 line-clamp-2">${dress.notes}</p>` : ''}
           </div>
 
-          <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-2">
-            <button onclick="startProductionForDress('${dress.id}')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
-              <i class="fa-solid fa-calculator"></i> কস্টিং শুরু করুন
+          <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
+            <button onclick="startProductionForDress('${dress.id}')" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold py-1.5 px-2.5 rounded-xl transition flex items-center justify-center gap-1 shadow-xs">
+              <i class="fa-solid fa-calculator"></i> কস্টিং
+            </button>
+            <button onclick="printSingleDressCatalogCard('${dress.id}')" title="ড্রেস স্পেক ও ছবি প্রিন্ট করুন" class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition flex items-center justify-center text-xs">
+              <i class="fa-solid fa-print"></i>
             </button>
             <button onclick="openEditDressModal('${dress.id}')" title="ড্রেস তথ্য এডিট করুন" class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition flex items-center justify-center text-xs">
               <i class="fa-solid fa-pen-to-square"></i>
@@ -2525,7 +2551,7 @@
     function previewEditDressImage(e) {
       const file = e.target.files[0];
       if (file) {
-        resizeImageFile(file, 300, 300, (resizedDataUrl) => {
+        resizeImageFile(file, 800, 800, (resizedDataUrl) => {
           const prev = document.getElementById('editDressImagePreview');
           prev.src = resizedDataUrl;
           prev.classList.remove('hidden');
@@ -2785,11 +2811,19 @@
       const container = document.getElementById('printableJobCardContent');
       const now = new Date().toLocaleString('bn-BD');
 
+      // Fetch dress details and image fallback
+      const dressObj = dressCatalog.find(d => d.id === batch.dressId || d.code === batch.dressCode);
+      const dressImage = batch.dressImage || (dressObj ? dressObj.image : '') || '';
+      const dressCategory = (dressObj ? dressObj.category : '') || 'ড্রেস মডেল';
+      const targetSale = batch.suggestedSellingPrice || (dressObj ? dressObj.targetSalePrice : 0) || (batch.costPerDress * 1.3);
+      const estProfit = targetSale - batch.costPerDress;
+      const profitMarginPct = batch.costPerDress > 0 ? ((estProfit / batch.costPerDress) * 100).toFixed(1) : 0;
+
       let materialsHtml = '';
       (batch.materialsUsed || []).forEach(m => {
         materialsHtml += `
           <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 6px 8px;">${m.name}</td>
+            <td style="padding: 6px 8px; font-weight: 500;">${m.name}</td>
             <td style="padding: 6px 8px; text-align: right;">${m.qtyUsed} ${m.unit}</td>
             <td style="padding: 6px 8px; text-align: right;">৳ ${m.unitPrice}</td>
             <td style="padding: 6px 8px; text-align: right; font-weight: bold;">৳ ${(m.totalCost || 0).toLocaleString()}</td>
@@ -2800,10 +2834,10 @@
 
       let laborHtml = '';
       (batch.laborCosts || []).forEach(l => {
-        let typeDesc = l.wageType === 'DAYS' ? `${l.daysWorked} দিন (@ ৳${l.dailyRate}/দিন)` : l.wageType === 'PIECE' ? `${l.totalPcs} পিস (@ ৳${l.pieceRate}/পিস)` : 'ফিক্সড';
+        let typeDesc = l.wageType === 'DAYS' ? `${l.daysWorked} দিন (@ ৳${l.dailyRate}/দিন)` : l.wageType === 'PIECE' ? `${l.totalPcs} পিস (@ ৳${l.pieceRate}/পিস)` : 'চুক্তিভিত্তিক / ফিক্সড';
         laborHtml += `
           <tr style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 6px 8px;">${l.workerName}</td>
+            <td style="padding: 6px 8px; font-weight: 500;">${l.workerName}</td>
             <td style="padding: 6px 8px;">${typeDesc}</td>
             <td style="padding: 6px 8px; text-align: right; font-weight: bold;">৳ ${(l.totalLaborCost || 0).toLocaleString()}</td>
             <td style="padding: 6px 8px; text-align: right; font-weight: bold; color: #6b21a8;">৳ ${(l.laborCostPerPiece || 0).toLocaleString()}</td>
@@ -2811,20 +2845,75 @@
         `;
       });
 
+      let overheadHtml = '';
+      if (batch.overheadCosts && batch.overheadCosts.length > 0) {
+        overheadHtml = `
+          <h3 style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 12px 0 6px 0; color: #b45309;">৩. ওভারহেড ও আনুষঙ্গিক খরচ:</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 12px;">
+            <thead style="background: #fef3c7; font-weight: bold; color: #92400e;">
+              <tr>
+                <th style="padding: 6px 8px; text-align: left;">খাতের বিবরণ</th>
+                <th style="padding: 6px 8px; text-align: right;">মোট টাকা</th>
+                <th style="padding: 6px 8px; text-align: right;">১টি ড্রেসে খরচ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${batch.overheadCosts.map(o => `
+                <tr style="border-bottom: 1px solid #fde68a;">
+                  <td style="padding: 5px 8px;">${o.name}</td>
+                  <td style="padding: 5px 8px; text-align: right; font-weight: bold;">৳ ${(o.amount || 0).toLocaleString()}</td>
+                  <td style="padding: 5px 8px; text-align: right; font-weight: bold; color: #b45309;">৳ ${(batch.batchQty > 0 ? (o.amount / batch.batchQty).toFixed(2) : 0)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr style="font-weight: bold; background: #fffbeb;">
+                <td style="padding: 6px 8px;">মোট ওভারহেড:</td>
+                <td style="padding: 6px 8px; text-align: right;">৳ ${(batch.totalOverheadCost || 0).toLocaleString()}</td>
+                <td style="padding: 6px 8px; text-align: right; color: #b45309;">৳ ${(batch.batchQty > 0 ? ((batch.totalOverheadCost || 0) / batch.batchQty).toFixed(2) : 0)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        `;
+      }
+
       container.innerHTML = `
-        <div style="margin-bottom: 16px; background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 13px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span><strong>ব্যাচ নাম্বার:</strong> ${batch.batchNo}</span>
-            <span><strong>প্রোডাকশন তারিখ:</strong> ${batch.date}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span><strong>ড্রেস:</strong> [${batch.dressCode}] ${batch.dressName}</span>
-            <span><strong>তৈরি পরিমাণ:</strong> <strong>${batch.batchQty} Pcs</strong></span>
+        <!-- Dress Information Card with Picture -->
+        <div style="margin-bottom: 16px; background: #f8fafc; padding: 14px; border-radius: 10px; border: 1px solid #cbd5e1; display: flex; gap: 16px; align-items: center;">
+          ${dressImage ? `
+            <div style="flex-shrink: 0; text-align: center;">
+              <img src="${dressImage}" alt="${batch.dressName}" style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 2px solid #0284c7; box-shadow: 0 2px 6px rgba(0,0,0,0.12); display: block; background: #ffffff;">
+              <span style="display: block; font-size: 10px; color: #475569; margin-top: 4px; font-weight: bold;">ড্রেসের ছবি (Photo)</span>
+            </div>
+          ` : `
+            <div style="flex-shrink: 0; width: 110px; height: 110px; border-radius: 8px; border: 2px dashed #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #ffffff; color: #94a3b8; font-size: 11px; text-align: center; padding: 6px;">
+              <i class="fa-solid fa-shirt" style="font-size: 26px; margin-bottom: 4px; color: #cbd5e1;"></i>
+              <span>ছবি সংযুক্ত নেই</span>
+            </div>
+          `}
+          <div style="flex-grow: 1; font-size: 12px; line-height: 1.6;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px;">
+              <span><strong>ব্যাচ নাম্বার:</strong> <span style="font-family: monospace; font-weight: bold; color: #0369a1; font-size: 13px;">${batch.batchNo}</span></span>
+              <span><strong>প্রোডাকশন তারিখ:</strong> ${batch.date}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span><strong>ড্রেসের নাম:</strong> <span style="font-size: 14px; font-weight: bold; color: #0f172a;">${batch.dressName}</span></span>
+              <span><strong>ড্রেস কোড:</strong> <span style="font-family: monospace; font-weight: bold; background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px;">${batch.dressCode}</span></span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span><strong>ক্যাটাগরি:</strong> ${dressCategory}</span>
+              <span><strong>তৈরির মোট পরিমাণ:</strong> <strong style="font-size: 14px; color: #0369a1;">${batch.batchQty} Pcs</strong></span>
+            </div>
+            ${dressObj && dressObj.notes ? `
+              <div style="font-size: 11px; color: #475569; margin-top: 4px; background: #ffffff; padding: 4px 8px; border-radius: 4px; border: 1px dashed #cbd5e1;">
+                <strong>কাটিং ও ডিজাইন নোট:</strong> ${dressObj.notes}
+              </div>
+            ` : ''}
           </div>
         </div>
 
         <h3 style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 12px 0 6px 0; color: #047857;">১. ব্যবহৃত কাঁচামাল ও কাপড় বিবরণী:</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px;">
           <thead style="background: #e2e8f0; font-weight: bold;">
             <tr>
               <th style="padding: 6px 8px; text-align: left;">কাঁচামালের নাম</th>
@@ -2845,7 +2934,7 @@
         </table>
 
         <h3 style="font-size: 13px; font-weight: bold; text-transform: uppercase; margin: 12px 0 6px 0; color: #6b21a8;">২. কারিগর মজুরি ও স্যালারি বিবরণী:</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px;">
           <thead style="background: #e2e8f0; font-weight: bold;">
             <tr>
               <th style="padding: 6px 8px; text-align: left;">কারিগর / কাজের নাম</th>
@@ -2864,15 +2953,201 @@
           </tfoot>
         </table>
 
-        <div style="background: #0f172a; color: white; padding: 14px; border-radius: 8px; margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+        ${overheadHtml}
+
+        <!-- Grand Total & Unit Cost Highlight Banner -->
+        <div style="background: #0f172a; color: white; padding: 14px 18px; border-radius: 8px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8;">সর্বমোট ব্যাচ উৎপাদন ব্যয়</div>
-            <div style="font-size: 20px; font-weight: bold;">৳ ${(batch.totalBatchCost || 0).toLocaleString()}</div>
+            <div style="font-size: 11px; text-transform: uppercase; color: #38bdf8;">সর্বমোট ব্যাচ উৎপাদন ব্যয় (${batch.batchQty} Pcs)</div>
+            <div style="font-size: 18px; font-weight: bold;">৳ ${(batch.totalBatchCost || 0).toLocaleString()}</div>
           </div>
           <div style="text-align: right;">
             <div style="font-size: 11px; text-transform: uppercase; color: #4ade80;">✨ ১টি ড্রেসের নিখুঁত উৎপাদন খরচ</div>
             <div style="font-size: 24px; font-weight: 900; color: #facc15;">৳ ${(batch.costPerDress || 0).toLocaleString()}</div>
           </div>
+        </div>
+
+        <!-- Profit & Pricing Estimation Footer -->
+        <div style="margin-top: 10px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 12px; border-radius: 6px; display: flex; justify-content: space-between; font-size: 11px; color: #166534;">
+          <span><strong>টার্গেট বিক্রয় মূল্য:</strong> ৳ ${Math.round(targetSale).toLocaleString()}</span>
+          <span><strong>প্রত্যাশিত মুনাফা/পিস:</strong> ৳ ${Math.round(estProfit).toLocaleString()} (${profitMarginPct}% মার্জিন)</span>
+          <span><strong>প্রিন্ট সময়:</strong> ${now}</span>
+        </div>
+      `;
+
+      const printArea = document.getElementById('printableJobCard');
+      printArea.classList.remove('hidden');
+      window.print();
+      printArea.classList.add('hidden');
+    }
+
+    // -----------------------------------------------------------------
+    // PRINT LIVE DRAFT JOB CARD (FROM TAB 1 LIVE FORM)
+    // -----------------------------------------------------------------
+    function printLiveDraftJobCard() {
+      const dressId = document.getElementById('prodDressSelect').value;
+      if (!dressId) {
+        Swal.fire('ড্রেস নির্বাচন করুন', 'লাইভ কস্টিং স্লিপ প্রিন্ট করার জন্য অনুগ্রহ করে প্রথমে একটি ড্রেস নির্বাচন করুন।', 'warning');
+        return;
+      }
+
+      const dress = dressCatalog.find(d => d.id === dressId);
+      if (!dress) {
+        Swal.fire('ত্রুটি', 'নির্বাচিত ড্রেসটি পাওয়া যায়নি।', 'error');
+        return;
+      }
+
+      const batchQty = parseInt(document.getElementById('prodBatchQty').value) || 1;
+      const prodDate = document.getElementById('prodDate').value || new Date().toISOString().split('T')[0];
+
+      // Collect Materials
+      const materialsUsed = [];
+      document.querySelectorAll('#materialRowsContainer > div').forEach(row => {
+        const select = row.querySelector('.mat-select');
+        const rmId = select.value;
+        const qty = parseFloat(row.querySelector('.mat-qty').value) || 0;
+        if (rmId && qty > 0) {
+          const rawItem = rawMaterials.find(r => r.id === rmId);
+          if (rawItem) {
+            const itemCost = qty * rawItem.unitPrice;
+            materialsUsed.push({
+              name: rawItem.name,
+              unit: rawItem.unit,
+              unitPrice: rawItem.unitPrice,
+              qtyUsed: qty,
+              totalCost: itemCost,
+              costPerPiece: parseFloat((itemCost / batchQty).toFixed(2))
+            });
+          }
+        }
+      });
+
+      // Collect Labor
+      const laborCosts = [];
+      document.querySelectorAll('#laborRowsContainer > div').forEach(row => {
+        const name = row.querySelector('.labor-name').value.trim();
+        const type = row.querySelector('.labor-type').value;
+        const paramVal = parseFloat(row.querySelector('.labor-param-input').value) || 0;
+        const rateVal = parseFloat(row.querySelector('.labor-rate-input').value) || 0;
+
+        let totalWage = 0;
+        if (type === 'DAYS') totalWage = paramVal * rateVal;
+        else if (type === 'PIECE') totalWage = paramVal * rateVal;
+        else if (type === 'FIXED') totalWage = rateVal;
+
+        if (name && totalWage >= 0) {
+          laborCosts.push({
+            workerName: name,
+            wageType: type,
+            daysWorked: type === 'DAYS' ? paramVal : 0,
+            dailyRate: type === 'DAYS' ? rateVal : 0,
+            pieceRate: type === 'PIECE' ? rateVal : 0,
+            totalPcs: type === 'PIECE' ? paramVal : 0,
+            totalLaborCost: totalWage,
+            laborCostPerPiece: parseFloat((totalWage / batchQty).toFixed(2))
+          });
+        }
+      });
+
+      // Overheads
+      const elec = parseFloat(document.getElementById('overheadElectricity').value) || 0;
+      const pkg = parseFloat(document.getElementById('overheadPackaging').value) || 0;
+      const misc = parseFloat(document.getElementById('overheadMisc').value) || 0;
+      const overheadCosts = [];
+      if (elec > 0) overheadCosts.push({ name: 'ইলেকট্রিসিটি ও আয়রন', amount: elec });
+      if (pkg > 0) overheadCosts.push({ name: 'প্যাকেজিং বক্স ও হ্যাংট্যাগ', amount: pkg });
+      if (misc > 0) overheadCosts.push({ name: 'যাতায়াত / অন্যান্য', amount: misc });
+
+      const totalMaterialCost = materialsUsed.reduce((acc, i) => acc + i.totalCost, 0);
+      const totalLaborCost = laborCosts.reduce((acc, i) => acc + i.totalLaborCost, 0);
+      const totalOverheadCost = overheadCosts.reduce((acc, i) => acc + i.amount, 0);
+      const totalBatchCost = totalMaterialCost + totalLaborCost + totalOverheadCost;
+      const costPerDress = parseFloat((totalBatchCost / batchQty).toFixed(2));
+
+      const draftBatch = {
+        id: 'draft-' + Date.now(),
+        batchNo: 'DRAFT-' + prodDate.replace(/-/g, ''),
+        date: prodDate,
+        dressId: dress.id,
+        dressCode: dress.code,
+        dressName: dress.name,
+        dressImage: dress.image || '',
+        batchQty: batchQty,
+        materialsUsed: materialsUsed,
+        laborCosts: laborCosts,
+        overheadCosts: overheadCosts,
+        totalMaterialCost: totalMaterialCost,
+        totalLaborCost: totalLaborCost,
+        totalOverheadCost: totalOverheadCost,
+        totalBatchCost: totalBatchCost,
+        costPerDress: costPerDress,
+        suggestedSellingPrice: dress.targetSalePrice || (costPerDress * 1.3)
+      };
+
+      // Push temporarily to invoke printSingleJobCard, then remove
+      productionBatches.unshift(draftBatch);
+      printSingleJobCard(draftBatch.id);
+      productionBatches.shift();
+    }
+
+    // -----------------------------------------------------------------
+    // PRINT SINGLE DRESS SPECIFICATION & CATALOG CARD
+    // -----------------------------------------------------------------
+    function printSingleDressCatalogCard(dressId) {
+      const dress = dressCatalog.find(d => d.id === dressId);
+      if (!dress) return;
+
+      const container = document.getElementById('printableJobCardContent');
+      const now = new Date().toLocaleString('bn-BD');
+
+      // Find production stats for this dress
+      const batchesForDress = productionBatches.filter(b => b.dressId === dress.id || b.dressCode === dress.code);
+      const totalBatches = batchesForDress.length;
+      const totalPcsProduced = batchesForDress.reduce((acc, b) => acc + (parseInt(b.batchQty) || 0), 0);
+      const avgCost = batchesForDress.length > 0 ? (batchesForDress.reduce((acc, b) => acc + (b.costPerDress || 0), 0) / batchesForDress.length).toFixed(2) : 'N/A';
+
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 16px;">
+          <span style="background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 20px; text-transform: uppercase;">ড্রেস ডিজাইন ও স্পেসিফিকেশন শিট</span>
+          <h2 style="font-size: 20px; font-weight: bold; margin: 6px 0 2px 0; color: #0f172a;">${dress.name}</h2>
+          <span style="font-family: monospace; font-size: 13px; font-weight: bold; color: #475569;">ড্রেস স্টাইল কোড: ${dress.code}</span>
+        </div>
+
+        <div style="display: flex; gap: 20px; background: #f8fafc; padding: 18px; border-radius: 12px; border: 1px solid #cbd5e1; margin-bottom: 18px; align-items: center;">
+          <div style="flex-shrink: 0; text-align: center;">
+            ${dress.image ? `
+              <img src="${dress.image}" alt="${dress.name}" style="width: 180px; height: 180px; object-fit: cover; border-radius: 10px; border: 2px solid #0284c7; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: block; background: #ffffff;">
+            ` : `
+              <div style="width: 160px; height: 160px; border-radius: 10px; border: 2px dashed #94a3b8; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #ffffff; color: #94a3b8; font-size: 12px;">
+                <i class="fa-solid fa-shirt" style="font-size: 36px; margin-bottom: 8px; color: #cbd5e1;"></i>
+                <span>ছবি সংযুক্ত নেই</span>
+              </div>
+            `}
+            <span style="display: block; font-size: 11px; color: #64748b; margin-top: 6px; font-weight: bold;">ড্রেসের মূল ডিজাইন স্কেচ / ছবি</span>
+          </div>
+
+          <div style="flex-grow: 1; font-size: 13px; line-height: 1.8;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 6px 0; font-weight: bold; color: #475569;">ড্রেস কোড:</td><td style="text-align: right; font-family: monospace; font-weight: bold; color: #0369a1;">${dress.code}</td></tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 6px 0; font-weight: bold; color: #475569;">ক্যাটাগরি:</td><td style="text-align: right; font-weight: 600;">${dress.category || 'জেনারেল'}</td></tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 6px 0; font-weight: bold; color: #475569;">টার্গেট বিক্রয় মূল্য:</td><td style="text-align: right; font-size: 15px; font-weight: 900; color: #047857;">৳ ${(dress.targetSalePrice || 0).toLocaleString()}</td></tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 6px 0; font-weight: bold; color: #475569;">উৎপাদিত মোট ব্যাচ:</td><td style="text-align: right; font-weight: bold;">${totalBatches} টি ব্যাচ</td></tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 6px 0; font-weight: bold; color: #475569;">মোট তৈরি পোশাক:</td><td style="text-align: right; font-weight: bold; color: #0369a1;">${totalPcsProduced} Pcs</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; color: #475569;">গড় উৎপাদন খরচ:</td><td style="text-align: right; font-weight: bold; color: #b45309;">${avgCost !== 'N/A' ? '৳ ' + avgCost : 'কস্টিং করা হয়নি'}</td></tr>
+            </table>
+          </div>
+        </div>
+
+        ${dress.notes ? `
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 18px;">
+            <h4 style="font-size: 12px; font-weight: bold; color: #334155; margin: 0 0 4px 0; text-transform: uppercase;">কাটিং ও সেলাই স্পেসিফিকেশন নোট:</h4>
+            <p style="font-size: 12px; color: #475569; margin: 0; line-height: 1.6;">${dress.notes}</p>
+          </div>
+        ` : ''}
+
+        <div style="background: #f1f5f9; padding: 10px 14px; border-radius: 6px; display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
+          <span>ক্যাটালগ প্রিন্ট কপি • অফিস রেকর্ড</span>
+          <span>প্রিন্ট তারিখ ও সময়: ${now}</span>
         </div>
       `;
 
