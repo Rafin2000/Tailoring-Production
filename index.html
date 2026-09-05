@@ -1666,6 +1666,7 @@
           if (Array.isArray(res.data.rawMaterials)) rawMaterials = res.data.rawMaterials;
           if (Array.isArray(res.data.dressCatalog)) dressCatalog = res.data.dressCatalog;
           if (Array.isArray(res.data.productionBatches)) productionBatches = res.data.productionBatches;
+          if (Array.isArray(res.data.staffDirectory)) staffDirectory = res.data.staffDirectory;
 
           saveLocalData();
           renderAllViews();
@@ -1675,7 +1676,7 @@
             Swal.fire({
               icon: 'success',
               title: 'গুগল শিটের সাথে সিঙ্ক সম্পন্ন!',
-              text: `${rawMaterials.length} টি কাঁচামাল, ${dressCatalog.length} টি ড্রেস ও ${productionBatches.length} টি প্রোডাকশন ব্যাচ লোড হয়েছে।`,
+              text: `${rawMaterials.length} টি কাঁচামাল, ${dressCatalog.length} টি ড্রেস, ${staffDirectory.length} জন কর্মী ও ${productionBatches.length} টি প্রোডাকশন ব্যাচ লোড হয়েছে।`,
               timer: 2000,
               showConfirmButton: false,
               toast: true,
@@ -2115,11 +2116,20 @@
           </div>
         </div>
 
-        <!-- Working Time & Rates Input Row -->
-        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3 pt-2 border-t border-slate-200/60 items-center bg-purple-50/40 p-2.5 rounded-xl">
+        <!-- Working Time, Person Count & Rates Input Row -->
+        <div class="grid grid-cols-2 sm:grid-cols-12 gap-2.5 pt-2 border-t border-slate-200/60 items-center bg-purple-50/40 p-2.5 rounded-xl">
           
+          <!-- Worker count input (কত জন কাজ করেছে) -->
+          <div class="sm:col-span-2 labor-workers-box">
+            <label class="block font-bold text-purple-900 mb-1 text-[10px] uppercase tracking-wider">কত জন? (Workers)</label>
+            <div class="relative">
+              <input type="number" min="1" step="1" value="1" placeholder="1" oninput="handleLaborCalc('${rowId}')" class="labor-workers-input w-full px-2.5 py-1.5 bg-white border border-purple-200 rounded-lg font-bold text-slate-900 text-xs">
+              <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-purple-700 font-bold">জন</span>
+            </div>
+          </div>
+
           <!-- Days input -->
-          <div class="sm:col-span-3 labor-days-box">
+          <div class="sm:col-span-2 labor-days-box">
             <label class="block font-bold text-purple-900 mb-1 text-[10px] uppercase tracking-wider">কয় দিন কাজ? (Days)</label>
             <div class="relative">
               <input type="number" min="0" step="any" value="1" placeholder="0" oninput="handleLaborCalc('${rowId}')" class="labor-days-input w-full px-2.5 py-1.5 bg-white border border-purple-200 rounded-lg font-bold text-slate-900 text-xs">
@@ -2128,7 +2138,7 @@
           </div>
 
           <!-- Hours input -->
-          <div class="sm:col-span-3 labor-hours-box">
+          <div class="sm:col-span-2 labor-hours-box">
             <label class="block font-bold text-purple-900 mb-1 text-[10px] uppercase tracking-wider">কয় ঘণ্টা কাজ? (Hours)</label>
             <div class="relative">
               <input type="number" min="0" step="any" value="0" placeholder="0" oninput="handleLaborCalc('${rowId}')" class="labor-hours-input w-full px-2.5 py-1.5 bg-white border border-purple-200 rounded-lg font-bold text-slate-900 text-xs">
@@ -2194,6 +2204,7 @@
       if (!row) return;
 
       const type = row.querySelector('.labor-type').value;
+      const workersBox = row.querySelector('.labor-workers-box');
       const daysBox = row.querySelector('.labor-days-box');
       const hoursBox = row.querySelector('.labor-hours-box');
       const dailyBox = row.querySelector('.labor-daily-box');
@@ -2202,6 +2213,7 @@
       const daysInput = row.querySelector('.labor-days-input');
       const hoursInput = row.querySelector('.labor-hours-input');
 
+      workersBox.classList.remove('hidden');
       daysBox.classList.remove('hidden');
       hoursBox.classList.remove('hidden');
       dailyBox.classList.remove('hidden');
@@ -2240,22 +2252,23 @@
       const row = document.getElementById(rowId);
       if (row) {
         const type = row.querySelector('.labor-type').value;
-        const days = parseFloat(row.querySelector('.labor-days-input').value) || 0;
-        const hours = parseFloat(row.querySelector('.labor-hours-input').value) || 0;
-        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate').value) || 0;
-        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate').value) || 0;
+        const workerCount = parseFloat(row.querySelector('.labor-workers-input')?.value) || 1;
+        const days = parseFloat(row.querySelector('.labor-days-input')?.value) || 0;
+        const hours = parseFloat(row.querySelector('.labor-hours-input')?.value) || 0;
+        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate')?.value) || 0;
+        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate')?.value) || 0;
 
         let rowTotal = 0;
         if (type === 'DAYS_HOURS') {
-          rowTotal = (days * dailyRate) + (hours * hourlyRate);
+          rowTotal = workerCount * ((days * dailyRate) + (hours * hourlyRate));
         } else if (type === 'DAYS') {
-          rowTotal = days * dailyRate;
+          rowTotal = workerCount * (days * dailyRate);
         } else if (type === 'HOURS') {
-          rowTotal = hours * hourlyRate;
+          rowTotal = workerCount * (hours * hourlyRate);
         } else if (type === 'PIECE') {
           rowTotal = days * dailyRate;
         } else if (type === 'FIXED') {
-          rowTotal = dailyRate;
+          rowTotal = workerCount * dailyRate;
         }
 
         const totalEl = row.querySelector('.labor-row-total');
@@ -2292,17 +2305,18 @@
       let totalLabor = 0;
       document.querySelectorAll('#laborRowsContainer > div').forEach(row => {
         const type = row.querySelector('.labor-type').value;
-        const days = parseFloat(row.querySelector('.labor-days-input').value) || 0;
-        const hours = parseFloat(row.querySelector('.labor-hours-input').value) || 0;
-        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate').value) || 0;
-        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate').value) || 0;
+        const workerCount = parseFloat(row.querySelector('.labor-workers-input')?.value) || 1;
+        const days = parseFloat(row.querySelector('.labor-days-input')?.value) || 0;
+        const hours = parseFloat(row.querySelector('.labor-hours-input')?.value) || 0;
+        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate')?.value) || 0;
+        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate')?.value) || 0;
 
         let rowLabor = 0;
-        if (type === 'DAYS_HOURS') rowLabor = (days * dailyRate) + (hours * hourlyRate);
-        else if (type === 'DAYS') rowLabor = days * dailyRate;
-        else if (type === 'HOURS') rowLabor = hours * hourlyRate;
+        if (type === 'DAYS_HOURS') rowLabor = workerCount * ((days * dailyRate) + (hours * hourlyRate));
+        else if (type === 'DAYS') rowLabor = workerCount * (days * dailyRate);
+        else if (type === 'HOURS') rowLabor = workerCount * (hours * hourlyRate);
         else if (type === 'PIECE') rowLabor = days * dailyRate;
-        else if (type === 'FIXED') rowLabor = dailyRate;
+        else if (type === 'FIXED') rowLabor = workerCount * dailyRate;
 
         totalLabor += rowLabor;
       });
@@ -2412,17 +2426,18 @@
         const name = row.querySelector('.labor-name').value.trim();
         const desig = row.querySelector('.labor-desig').value.trim();
         const type = row.querySelector('.labor-type').value;
-        const days = parseFloat(row.querySelector('.labor-days-input').value) || 0;
-        const hours = parseFloat(row.querySelector('.labor-hours-input').value) || 0;
-        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate').value) || 0;
-        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate').value) || 0;
+        const workerCount = parseFloat(row.querySelector('.labor-workers-input')?.value) || 1;
+        const days = parseFloat(row.querySelector('.labor-days-input')?.value) || 0;
+        const hours = parseFloat(row.querySelector('.labor-hours-input')?.value) || 0;
+        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate')?.value) || 0;
+        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate')?.value) || 0;
 
         let totalWage = 0;
-        if (type === 'DAYS_HOURS') totalWage = (days * dailyRate) + (hours * hourlyRate);
-        else if (type === 'DAYS') totalWage = days * dailyRate;
-        else if (type === 'HOURS') totalWage = hours * hourlyRate;
+        if (type === 'DAYS_HOURS') totalWage = workerCount * ((days * dailyRate) + (hours * hourlyRate));
+        else if (type === 'DAYS') totalWage = workerCount * (days * dailyRate);
+        else if (type === 'HOURS') totalWage = workerCount * (hours * hourlyRate);
         else if (type === 'PIECE') totalWage = days * dailyRate;
-        else if (type === 'FIXED') totalWage = dailyRate;
+        else if (type === 'FIXED') totalWage = workerCount * dailyRate;
 
         if (name && totalWage >= 0) {
           laborCosts.push({
@@ -2430,6 +2445,7 @@
             workerName: name,
             designation: desig || 'কারিগর',
             wageType: type,
+            workerCount: workerCount,
             daysWorked: (type === 'DAYS_HOURS' || type === 'DAYS') ? days : 0,
             hoursWorked: (type === 'DAYS_HOURS' || type === 'HOURS') ? hours : 0,
             dailyRate: dailyRate,
@@ -3293,17 +3309,20 @@
       const laborTbody = document.getElementById('modalLaborBreakdownBody');
       laborTbody.innerHTML = '';
       (batch.laborCosts || []).forEach(l => {
+        const count = l.workerCount || 1;
+        const countBadge = count > 1 ? `<span class="inline-block bg-sky-100 text-sky-800 font-bold px-1.5 py-0.5 rounded text-[10px] ml-1 border border-sky-200">${count} জন কর্মী</span>` : '';
+
         let typeDesc = '';
         if (l.wageType === 'DAYS_HOURS') {
-          typeDesc = `${l.daysWorked || 0} দিন + ${l.hoursWorked || 0} ঘণ্টা`;
+          typeDesc = `${count > 1 ? count + ' জন • ' : ''}${l.daysWorked || 0} দিন + ${l.hoursWorked || 0} ঘণ্টা`;
         } else if (l.wageType === 'DAYS') {
-          typeDesc = `${l.daysWorked || 0} দিন কাজ`;
+          typeDesc = `${count > 1 ? count + ' জন • ' : ''}${l.daysWorked || 0} দিন কাজ`;
         } else if (l.wageType === 'HOURS') {
-          typeDesc = `${l.hoursWorked || 0} ঘণ্টা কাজ`;
+          typeDesc = `${count > 1 ? count + ' জন • ' : ''}${l.hoursWorked || 0} ঘণ্টা কাজ`;
         } else if (l.wageType === 'PIECE') {
           typeDesc = `${l.totalPcs || 0} পিস সেলাই`;
         } else {
-          typeDesc = 'চুক্তিভিত্তিক / ফিক্সড';
+          typeDesc = count > 1 ? `${count} জন • ফিক্সড` : 'চুক্তিভিত্তিক / ফিক্সড';
         }
 
         let rateDesc = '';
@@ -3323,7 +3342,10 @@
         tr.innerHTML = `
           <td class="p-2.5">
             <div class="font-bold text-slate-800">${l.workerName}</div>
-            <span class="inline-block bg-purple-100 text-purple-800 font-semibold px-1.5 py-0.5 rounded text-[10px] mt-0.5">${l.designation || 'কারিগর'}</span>
+            <div class="flex items-center gap-1 mt-0.5">
+              <span class="inline-block bg-purple-100 text-purple-800 font-semibold px-1.5 py-0.5 rounded text-[10px]">${l.designation || 'কারিগর'}</span>
+              ${countBadge}
+            </div>
           </td>
           <td class="p-2.5 text-slate-600 font-medium">${typeDesc}</td>
           <td class="p-2.5 text-right font-medium text-slate-600">${rateDesc}</td>
@@ -3384,24 +3406,30 @@
 
       let laborHtml = '';
       (batch.laborCosts || []).forEach(l => {
+        const count = l.workerCount || 1;
+        const countBadge = count > 1 ? `<span style="font-size: 10px; background: #e0f2fe; color: #0369a1; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-left: 4px;">${count} জন</span>` : '';
+
         let typeDesc = '';
         if (l.wageType === 'DAYS_HOURS') {
-          typeDesc = `${l.daysWorked || 0} দিন + ${l.hoursWorked || 0} ঘণ্টা (@ ৳${l.dailyRate}/দিন + ৳${l.hourlyRate}/ঘণ্টা)`;
+          typeDesc = `${count > 1 ? count + ' জন • ' : ''}${l.daysWorked || 0} দিন + ${l.hoursWorked || 0} ঘণ্টা (@ ৳${l.dailyRate}/দিন + ৳${l.hourlyRate}/ঘণ্টা)`;
         } else if (l.wageType === 'DAYS') {
-          typeDesc = `${l.daysWorked || 0} দিন (@ ৳${l.dailyRate}/দিন)`;
+          typeDesc = `${count > 1 ? count + ' জন • ' : ''}${l.daysWorked || 0} দিন (@ ৳${l.dailyRate}/দিন)`;
         } else if (l.wageType === 'HOURS') {
-          typeDesc = `${l.hoursWorked || 0} ঘণ্টা (@ ৳${l.hourlyRate}/ঘণ্টা)`;
+          typeDesc = `${count > 1 ? count + ' জন • ' : ''}${l.hoursWorked || 0} ঘণ্টা (@ ৳${l.hourlyRate}/ঘণ্টা)`;
         } else if (l.wageType === 'PIECE') {
           typeDesc = `${l.totalPcs || 0} পিস (@ ৳${l.pieceRate}/পিস)`;
         } else {
-          typeDesc = 'চুক্তিভিত্তিক / ফিক্সড';
+          typeDesc = count > 1 ? `${count} জন • ফিক্সড` : 'চুক্তিভিত্তিক / ফিক্সড';
         }
 
         laborHtml += `
           <tr style="border-bottom: 1px solid #e2e8f0;">
             <td style="padding: 6px 8px;">
               <div style="font-weight: 600; color: #0f172a;">${l.workerName}</div>
-              <span style="font-size: 10px; color: #6b21a8; background: #f3e8ff; padding: 1px 5px; border-radius: 4px; font-weight: bold;">${l.designation || 'কারিগর'}</span>
+              <div style="margin-top: 2px;">
+                <span style="font-size: 10px; color: #6b21a8; background: #f3e8ff; padding: 1px 5px; border-radius: 4px; font-weight: bold;">${l.designation || 'কারিগর'}</span>
+                ${countBadge}
+              </div>
             </td>
             <td style="padding: 6px 8px; color: #334155;">${typeDesc}</td>
             <td style="padding: 6px 8px; text-align: right; font-weight: bold;">৳ ${(l.totalLaborCost || 0).toLocaleString()}</td>
@@ -3595,17 +3623,18 @@
         const name = row.querySelector('.labor-name').value.trim();
         const desig = row.querySelector('.labor-desig').value.trim();
         const type = row.querySelector('.labor-type').value;
-        const days = parseFloat(row.querySelector('.labor-days-input').value) || 0;
-        const hours = parseFloat(row.querySelector('.labor-hours-input').value) || 0;
-        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate').value) || 0;
-        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate').value) || 0;
+        const workerCount = parseFloat(row.querySelector('.labor-workers-input')?.value) || 1;
+        const days = parseFloat(row.querySelector('.labor-days-input')?.value) || 0;
+        const hours = parseFloat(row.querySelector('.labor-hours-input')?.value) || 0;
+        const dailyRate = parseFloat(row.querySelector('.labor-daily-rate')?.value) || 0;
+        const hourlyRate = parseFloat(row.querySelector('.labor-hourly-rate')?.value) || 0;
 
         let totalWage = 0;
-        if (type === 'DAYS_HOURS') totalWage = (days * dailyRate) + (hours * hourlyRate);
-        else if (type === 'DAYS') totalWage = days * dailyRate;
-        else if (type === 'HOURS') totalWage = hours * hourlyRate;
+        if (type === 'DAYS_HOURS') totalWage = workerCount * ((days * dailyRate) + (hours * hourlyRate));
+        else if (type === 'DAYS') totalWage = workerCount * (days * dailyRate);
+        else if (type === 'HOURS') totalWage = workerCount * (hours * hourlyRate);
         else if (type === 'PIECE') totalWage = days * dailyRate;
-        else if (type === 'FIXED') totalWage = dailyRate;
+        else if (type === 'FIXED') totalWage = workerCount * dailyRate;
 
         if (name && totalWage >= 0) {
           laborCosts.push({
@@ -3613,6 +3642,7 @@
             workerName: name,
             designation: desig || 'কারিগর',
             wageType: type,
+            workerCount: workerCount,
             daysWorked: (type === 'DAYS_HOURS' || type === 'DAYS') ? days : 0,
             hoursWorked: (type === 'DAYS_HOURS' || type === 'HOURS') ? hours : 0,
             dailyRate: dailyRate,
