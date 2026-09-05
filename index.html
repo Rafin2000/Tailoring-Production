@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>গার্মেন্টস প্রোডাকশন, কাঁচামাল ক্রয় ও ড্রেস কস্টিং ইআরপি (Garment Production & Costing ERP)</title>
+  <title>Sanvee's Production & Costing</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -116,12 +116,12 @@
       
       <!-- Brand Logo & Title -->
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/30 text-lg font-bold">
-          <i class="fa-solid fa-scissors"></i>
+        <div class="h-11 px-2.5 py-1 rounded-xl bg-white/95 flex items-center justify-center shadow-lg shadow-sky-500/20 border border-slate-700/50">
+          <img src="file:///C:/Users/PC/.gemini/antigravity-ide/brain/da8cf59f-9906-4e09-843f-b9b8b0499733/.user_uploaded/media_1788583971971.png" onerror="this.onerror=null; this.src='logo.png';" alt="Sanvee's Logo" class="h-8 max-w-[130px] object-contain">
         </div>
         <div>
           <h1 class="text-base sm:text-xl font-bold tracking-wide flex items-center gap-2">
-            Garment Production & Costing ERP
+            Sanvee's Production & Costing
             <span class="bg-gradient-to-r from-sky-400 to-emerald-400 text-slate-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">v3.0 Pro</span>
           </h1>
           <p class="text-xs text-slate-400">কাঁচামাল ক্রয়, ড্রেস ক্যাটালগ, কারিগর স্যালারি ও নিখুঁত কস্টিং ক্যালকুলেটর</p>
@@ -1186,9 +1186,18 @@
     <div style="border: 2px solid #0f172a; padding: 24px; border-radius: 12px; max-width: 750px; margin: 0 auto; font-family: sans-serif; color: #0f172a;">
       
       <!-- Print Header -->
-      <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;">
-        <h1 style="font-size: 22px; font-weight: bold; margin: 0; text-transform: uppercase;">GARMENT PRODUCTION COST SHEET</h1>
-        <p style="font-size: 12px; color: #475569; margin: 4px 0 0 0;">পোশাক উৎপাদন ও নিখুঁত কস্টিং বিশ্লেষণ বিবরণী</p>
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <img src="file:///C:/Users/PC/.gemini/antigravity-ide/brain/da8cf59f-9906-4e09-843f-b9b8b0499733/.user_uploaded/media_1788583971971.png" onerror="this.onerror=null; this.src='logo.png';" alt="Sanvee's Logo" style="height: 48px; max-width: 140px; object-fit: contain;">
+          <div style="text-align: left;">
+            <h1 style="font-size: 20px; font-weight: 800; margin: 0; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">SANVEE'S PRODUCTION & COSTING</h1>
+            <p style="font-size: 11px; color: #475569; margin: 2px 0 0 0;">পোশাক উৎপাদন, ম্যাটেরিয়াল ও নিখুঁত কস্টিং বিবরণী</p>
+          </div>
+        </div>
+        <div style="text-align: right; font-size: 10px; color: #64748b;">
+          <div style="font-weight: bold; color: #0f172a; font-size: 11px;">OFFICIAL JOB CARD / SPEC SHEET</div>
+          <div>Sanvee's Garments ERP</div>
+        </div>
       </div>
 
       <div id="printableJobCardContent">
@@ -3268,7 +3277,7 @@
       XLSX.utils.book_append_sheet(wb, wsProd, "Production & Costing");
 
       const today = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `Garment_Production_Costing_Report_${today}.xlsx`);
+      XLSX.writeFile(wb, `Sanvees_Production_Costing_Report_${today}.xlsx`);
     }
 
     // -----------------------------------------------------------------
